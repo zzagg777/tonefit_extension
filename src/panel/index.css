@@ -1,0 +1,106 @@
+@import "tailwindcss";
+@import "@styles/tokens.css";
+
+@source "../components/panel/**/*.{tsx,ts}";
+@source "../components/ui/**/*.{tsx,ts}";
+@source "../**/*.{tsx,ts}";
+
+@theme {
+  /* 폰트 */
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* text */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-text-placeholder: var(--color-text-placeholder);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-text-brand: var(--color-text-brand);
+  --color-text-brand-strong: var(--color-text-brand-strong);
+  --color-text-success: var(--color-text-success);
+  --color-text-warning: var(--color-text-warning);
+  --color-text-danger: var(--color-text-danger);
+  --color-text-info: var(--color-text-info);
+
+  /* icon */
+  --color-icon-primary: var(--color-icon-primary);
+  --color-icon-secondary: var(--color-icon-secondary);
+  --color-icon-tertiary: var(--color-icon-tertiary);
+  --color-icon-disabled: var(--color-icon-disabled);
+  --color-icon-placeholder: var(--color-icon-placeholder);
+  --color-icon-inverse: var(--color-icon-inverse);
+  --color-icon-brand: var(--color-icon-brand);
+  --color-icon-brand-strong: var(--color-icon-brand-strong);
+  --color-icon-success: var(--color-icon-success);
+  --color-icon-warning: var(--color-icon-warning);
+  --color-icon-danger: var(--color-icon-danger);
+  --color-icon-info: var(--color-icon-info);
+  --color-icon-load: var(--color-icon-load);
+
+  /* background */
+  --color-background-page: var(--color-background-page);
+  --color-background-surface: var(--color-background-surface);
+  --color-background-subtle: var(--color-background-subtle);
+  --color-background-muted: var(--color-background-muted);
+  --color-background-disabled: var(--color-background-disabled);
+  --color-background-overlay: var(--color-background-overlay);
+  --color-background-inverse: var(--color-background-inverse);
+  --color-background-hover: var(--color-background-hover);
+  --color-background-pressed: var(--color-background-pressed);
+  --color-background-hover-2: var(--color-background-hover-2);
+  --color-background-pressed-2: var(--color-background-pressed-2);
+  --color-background-brand: var(--color-background-brand);
+  --color-background-brand-subtle: var(--color-background-brand-subtle);
+  --color-background-brand-100: var(--color-background-brand-100);
+  --color-background-brand-400: var(--color-background-brand-400);
+  --color-background-brand-hover: var(--color-background-brand-hover);
+  --color-background-brand-pressed: var(--color-background-brand-pressed);
+  --color-background-selected: var(--color-background-selected);
+  --color-background-success-subtle: var(--color-background-success-subtle);
+  --color-background-warning-subtle: var(--color-background-warning-subtle);
+  --color-background-danger-subtle: var(--color-background-danger-subtle);
+  --color-background-info-subtle: var(--color-background-info-subtle);
+  --color-background-load: var(--color-background-load);
+
+  /* Action / Primary */
+  --color-action-primary-default: var(--color-action-primary-default);
+  --color-action-primary-hover: var(--color-action-primary-hover);
+  --color-action-primary-pressed: var(--color-action-primary-pressed);
+  --color-action-primary-disabled-background: var(--color-action-primary-disabled-background);
+  --color-action-primary-foreground: var(--color-action-primary-foreground);
+  --color-action-primary-disabled-foreground: var(--color-action-primary-disabled-foreground);
+
+  /* Badge */
+  --color-badge-brand-background: var(--color-badge-brand-background);
+  --color-badge-brand-foreground: var(--color-badge-brand-foreground);
+  --color-badge-brand-border: var(--color-badge-brand-border);
+  --color-badge-neutral-background: var(--color-badge-neutral-background);
+  --color-badge-neutral-foreground: var(--color-badge-neutral-foreground);
+  --color-badge-neutral-border: var(--color-badge-neutral-border);
+
+  /* border */
+  --color-border-default: var(--color-border-default);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-disabled: var(--color-border-disabled);
+  --color-border-inverse: var(--color-border-inverse);
+  --color-border-focus: var(--color-border-focus);
+  --color-border-brand: var(--color-border-brand);
+  --color-border-success: var(--color-border-success);
+  --color-border-info: var(--color-border-info);
+  --color-border-warning: var(--color-border-warning);
+  --color-border-danger: var(--color-border-danger);
+
+  /* Font Size */
+  --text-2xs: 10px;
+  --text-xl-plus: 22px;
+  --text-2xl-plus: 28px;
+  --text-3xl-plus: 32px;
+  --text-4xl-plus: 40px;
+
+  /* Letter Spacing */
+  --tracking-tight: var(--font-letter-spacing-tight);
+  --tracking-normal: var(--font-letter-spacing-normal);
+  --tracking-wide: var(--font-letter-spacing-wide);
+}
