@@ -75,7 +75,8 @@ export type TermsType =
   | 'ANALYTICS'
   | 'MARKETING'
   | 'AI_LEARNING'
-  | 'MAIL_READ';
+  | 'MAIL_READ'
+  | 'OVERSEAS_TRANSFER';
 
 // =============================================================
 // 공통 타입
@@ -418,14 +419,8 @@ export interface ReplyQuestion {
   mail_order?: number;
 }
 
-export interface ReplySummaryItem {
-  order: number;
-  sender: string;
-  summary: string;
-}
-
 export interface ReplySummaryResponse {
-  summaries: ReplySummaryItem[];
+  summary_lines: string[];
 }
 
 export interface ReplyAnalysisResponse {

@@ -129,6 +129,7 @@ const TermsView = ({ onComplete, error }: TermsViewProps) => {
     MARKETING: false,
     AI_LEARNING: false,
     MAIL_READ: false,
+    OVERSEAS_TRANSFER: false,
   });
 
   const allChecked = TERMS_LIST.every((t) => agreed[t.key]);
@@ -146,6 +147,7 @@ const TermsView = ({ onComplete, error }: TermsViewProps) => {
       MARKETING: next,
       AI_LEARNING: next,
       MAIL_READ: next,
+      OVERSEAS_TRANSFER: next,
     });
   };
 

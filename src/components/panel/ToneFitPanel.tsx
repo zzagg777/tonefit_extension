@@ -96,13 +96,9 @@ const DEV_MOCK_REPLY_ANALYSIS: import('@/types').ReplyAnalysisResponse = {
   ],
 };
 
-const DEV_MOCK_REPLY_SUMMARIES: import('@/types').ReplySummaryItem[] = [
-  { order: 1, sender: '김팀장', summary: '프로젝트 일정 조정 가능 여부 문의' },
-  {
-    order: 2,
-    sender: '김팀장',
-    summary: '예산 항목 확인 요청 및 다음 주 회의 일정 조율 제안',
-  },
+const DEV_MOCK_REPLY_SUMMARIES: string[] = [
+  '프로젝트 일정 조정 가능 여부 문의',
+  '예산 항목 확인 요청 및 다음 주 회의 일정 조율 제안',
 ];
 const DEV_MOCK_CHANGES: import('@/types').CorrectionChange[] = [
   {
@@ -292,7 +288,7 @@ export interface ToneFitPanelProps {
     cc?: string[]
   ) => Promise<{
     analysis: import('@/types').ReplyAnalysisResponse | null;
-    summaries: import('@/types').ReplySummaryItem[];
+    summaries: string[];
   }>;
   /** 회신 분석 중 중단하기 — 요청 abort 후 패널 닫기 */
   onReplyAnalysisCancel?: () => void;
@@ -683,7 +679,7 @@ const PanelReplyInputBody = ({
   onSubmit,
 }: {
   analysis: import('@/types').ReplyAnalysisResponse;
-  summaries: import('@/types').ReplySummaryItem[];
+  summaries: string[];
   originalSubject?: string;
   onSubmit: (data: import('@/types').ReplyRequest) => void;
 }) => {
@@ -762,9 +758,9 @@ const PanelReplyInputBody = ({
             <>
               <div className="border-t border-border-subtle w-full my-2.5" />
               <div className="flex flex-col gap-1.5">
-                {summaries.map((item) => (
+                {summaries.map((line, i) => (
                   <div
-                    key={item.order}
+                    key={i}
                     className="flex items-start gap-1 px-1.5 py-1 rounded-sm"
                   >
                     <svg
@@ -780,9 +776,8 @@ const PanelReplyInputBody = ({
                         fill="#7C4DFF"
                       />
                     </svg>
-
                     <p className="text-xs font-normal leading-4.5 tracking-tight text-text-secondary">
-                      {item.summary}
+                      {line}
                     </p>
                   </div>
                 ))}
@@ -2281,9 +2276,7 @@ const ToneFitPanel = ({
   const [replyAnalysis, setReplyAnalysis] = useState<
     import('@/types').ReplyAnalysisResponse | null
   >(null);
-  const [replySummaries, setReplySummaries] = useState<
-    import('@/types').ReplySummaryItem[]
-  >([]);
+  const [replySummaries, setReplySummaries] = useState<string[]>([]);
   const replyStartedRef = useRef(false);
   const [internalErrorVariant, setInternalErrorVariant] =
     useState<ErrorVariant | null>(null);

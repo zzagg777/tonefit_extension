@@ -686,7 +686,7 @@ const Panel = () => {
         ]);
         // 분석 완료 → 오버레이 해제
         chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', tabId });
-        return { analysis, summaries: summaryRes.summaries };
+        return { analysis, summaries: summaryRes.summary_lines };
       } catch (err) {
         chrome.runtime.sendMessage({ type: 'GENERATION_ERROR', tabId });
         if (
