@@ -85,15 +85,10 @@ export const getGoogleIdToken = (interactive = true): Promise<string> => {
 // ── 로그아웃 ─────────────────────────────────────────────────────
 
 export const logout = async (): Promise<void> => {
-  const token = await getStoredToken();
-  if (token) {
-    await axios
-      .post(`${API_URL}/auth/logout`, null, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .catch(console.error); // 서버 오류여도 로컬 토큰은 삭제
-  }
+  // 서버는 stateless — 로그아웃 API 없음
+  // FE가 로컬 토큰 폐기 + chrome.identity 캐시 제거로만 처리
   await clearToken();
+  chrome.identity.clearAllCachedAuthTokens(() => {});
 };
 
 // ── ToneFit 백엔드 인증 ───────────────────────────────────────────

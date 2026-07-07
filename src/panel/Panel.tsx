@@ -414,13 +414,19 @@ const Panel = () => {
             getStoredToken()
               .then(async (token) => {
                 if (!token) return;
-                // 토큰 유효성 검증 — 만료 시 로그인 화면으로
+                // 토큰 유효성 검증 — 401(만료)일 때만 토큰 삭제 후 로그인 화면으로
+                // 네트워크 오류·CORS 등 일시적 오류는 토큰 유지 후 메인 화면 진행
                 try {
                   await getMyProfile();
-                } catch {
-                  await clearToken();
-                  setIsLoading(false);
-                  return;
+                } catch (err) {
+                  const status = (err as { response?: { status?: number } })
+                    ?.response?.status;
+                  if (status === 401) {
+                    await clearToken();
+                    setIsLoading(false);
+                    return;
+                  }
+                  // 401 외 오류(네트워크·CORS 등)는 토큰 유지하고 계속 진행
                 }
                 if (tabId) {
                   chrome.tabs.sendMessage(
@@ -732,6 +738,7 @@ const Panel = () => {
 
   const handleAgreeMailRead = useCallback(async () => {
     await patchTermsAgreement('MAIL_READ', true);
+    await patchTermsAgreement('OVERSEAS_TRANSFER', true);
   }, []);
 
   const handleReplyWriteRequest = useCallback(async (req: ReplyRequest) => {
