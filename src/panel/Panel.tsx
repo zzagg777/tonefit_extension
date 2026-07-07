@@ -290,7 +290,7 @@ const DevToolbar = ({
 };
 
 // ── DEV 전용 기능 노출 여부 — 배포 전 false로 변경 ──────────────────
-const SHOW_DEV_TOOLBAR = true;
+const SHOW_DEV_TOOLBAR = false;
 
 // 약관 버전 — 서버와 맞춰야 함
 const TERMS_VERSION = '1.0';
