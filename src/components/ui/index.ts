@@ -62,7 +62,7 @@ export { default as ButtonCoreV2 } from './ButtonCoreV2';
 export type {
   ButtonCoreV2Props,
   ButtonCoreV2Variant,
-  ButtonCoreV2Layout,
+  ButtonCoreV2Size,
 } from './ButtonCoreV2';
 
 export { default as ButtonCheckLongV2 } from './ButtonCheckLongV2';

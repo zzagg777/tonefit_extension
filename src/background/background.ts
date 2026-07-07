@@ -2,11 +2,35 @@
  * ToneFit Extension — Background Service Worker
  */
 
-// ── 탭 이동 시 Side Panel 활성화 여부 제어 ───────────────────────────
-// 아이콘 클릭은 manifest의 default_popup으로 처리 (action.onClicked 미사용)
-// Gmail 탭에서만 아이콘 활성화 (badge 표시 등 UX 개선 용도)
-// 실제 열기는 action.onClicked에서 처리하므로 enabled 제한 제거
-// 아이콘은 항상 클릭 가능 — 비 Gmail 탭에서의 안내는 팝업에서 처리
+// ── 탭별 팝업 vs 사이드패널 분기 ────────────────────────────────────
+// Gmail 탭: popup 제거 → onClicked 발화 → 사이드패널
+// 그 외 탭: popup 유지 → 기존 팝업창 표시
+const POPUP_PATH = 'src/popup/index.html';
+const isGmailTab = (url?: string) =>
+  !!url && url.startsWith('https://mail.google.com/');
+
+const syncPopup = (tabId: number, url?: string) => {
+  chrome.action.setPopup({
+    tabId,
+    popup: isGmailTab(url) ? '' : POPUP_PATH,
+  });
+};
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId, (tab) => syncPopup(tabId, tab.url));
+});
+
+chrome.tabs.onUpdated.addListener((tabId, _, tab) => {
+  syncPopup(tabId, tab.url);
+});
+
+// Gmail 탭에서 아이콘 클릭 시 (popup이 '' 일 때만 onClicked 발화)
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id !== undefined) {
+    chrome.storage.local.set({ tonefit_open_source: 'toolbar' });
+    chrome.sidePanel.open({ tabId: tab.id }).catch(console.error);
+  }
+});
 
 // ── 패널 → Gmail 탭으로 메시지 중계 ─────────────────────────────────
 //

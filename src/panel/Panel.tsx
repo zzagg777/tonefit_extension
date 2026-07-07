@@ -290,7 +290,7 @@ const DevToolbar = ({
 };
 
 // ── DEV 전용 기능 노출 여부 — 배포 전 false로 변경 ──────────────────
-const SHOW_DEV_TOOLBAR = false;
+const SHOW_DEV_TOOLBAR = true;
 
 // 약관 버전 — 서버와 맞춰야 함
 const TERMS_VERSION = '1.0';
@@ -336,6 +336,7 @@ const Panel = () => {
     cc?: string[];
   } | null>(null);
   const [replyTriggerKey, setReplyTriggerKey] = useState(0);
+  const [panelResetKey, setPanelResetKey] = useState(0);
   const [replyData, setReplyData] = useState<{
     mails: ReplyMail[];
     to?: string[];
@@ -428,7 +429,19 @@ const Panel = () => {
                   }
                   // 401 외 오류(네트워크·CORS 등)는 토큰 유지하고 계속 진행
                 }
-                if (tabId) {
+                chrome.storage.local.get('tonefit_open_source', (result) => {
+                  const isToolbarOpen = result['tonefit_open_source'] === 'toolbar';
+                  if (isToolbarOpen) {
+                    chrome.storage.local.remove('tonefit_open_source');
+                  }
+
+                  if (isToolbarOpen || !tabId) {
+                    // 툴바 클릭으로 열린 경우 — 작성창 글자수 무시, 생성하기 고정
+                    setInitialPanelMode('generate');
+                    setScreen('main');
+                    return;
+                  }
+
                   chrome.tabs.sendMessage(
                     tabId,
                     { type: 'GET_EMAIL_CONTENT' },
@@ -457,9 +470,7 @@ const Panel = () => {
                       setScreen('main');
                     }
                   );
-                } else {
-                  setScreen('main');
-                }
+                });
               })
               .catch(console.error)
               .finally(() => setIsLoading(false));
@@ -488,7 +499,9 @@ const Panel = () => {
           '→ mode:',
           mode
         );
-        setRequestedPanelMode(mode);
+        setInitialPanelMode(mode);
+        setRequestedPanelMode(undefined);
+        setPanelResetKey((k) => k + 1);
       }
       // 패널이 이미 열린 상태에서 회신 아이콘 재클릭 시
       if (message.type === 'REPLY_DATA_READY') {
@@ -507,7 +520,9 @@ const Panel = () => {
             if (payload) {
               setReplyData(payload);
               setRequestedReplyData(payload);
-              setReplyTriggerKey((k) => k + 1);
+              setInitialPanelMode('reply');
+              setReplyTriggerKey(0);
+              setPanelResetKey((k) => k + 1);
             }
           }
         );
@@ -998,6 +1013,7 @@ const Panel = () => {
         {screen === 'main' && (
           <div className="relative w-full h-full">
             <ToneFitPanel
+              key={panelResetKey}
               remainingCount={remainingCount}
               onRequest={handleRequest}
               onSuccess={handleSuccess}

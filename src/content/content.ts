@@ -61,6 +61,7 @@ const STYLES_ID = 'tonefit-styles';
 
 // 패널 열림 상태 추적 — 새 작성창에 버튼 삽입 시 즉시 반영
 let isPanelOpen = false;
+let activeComposeEl: HTMLElement | null = null; // 아이콘을 클릭한 작성창
 
 // ── 유틸 ─────────────────────────────────────────────────────────
 
@@ -228,6 +229,7 @@ const injectToolbarButton = (composeEl: HTMLElement): boolean => {
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
+    activeComposeEl = composeEl;
 
     // 답장 여부 감지: body 에디터 내부 → composeEl 순으로 탐색 (document 전체 금지)
     const subjectEl =
@@ -240,7 +242,7 @@ const injectToolbarButton = (composeEl: HTMLElement): boolean => {
     );
     const hiddenSubject = hiddenSubjectEl?.value ?? '';
 
-    const bodyEditorEl = getBodyElement();
+    const bodyEditorEl = getBodyElement(composeEl);
 
     // contenteditable 내 .gmail_quote (버튼 클릭 후 펼쳐진 상태)
     const quoteEl =
@@ -405,7 +407,7 @@ const injectToolbarButton = (composeEl: HTMLElement): boolean => {
       });
       return;
     } else {
-      const bodyEl2 = getBodyElement();
+      const bodyEl2 = getBodyElement(composeEl);
       const bodyLength = bodyEl2 ? getUserTypedLength(bodyEl2, composeEl) : 0;
       if (DEBUG)
         console.error('[ToneFit] 아이콘 클릭 — bodyLength:', bodyLength);
@@ -587,7 +589,7 @@ const showOverlay = () => {
   }
   if (document.getElementById(OVERLAY_ID)) return;
 
-  const container = getComposeContainer();
+  const container = activeComposeEl ?? getComposeContainer();
   if (!container) {
     if (DEBUG) console.error('[ToneFit] 작성창 컨테이너를 찾을 수 없습니다');
     return;
@@ -652,7 +654,8 @@ const removeOverlay = () => {
 // ── 이메일 주입 ───────────────────────────────────────────────────
 
 const injectSubject = (subject: string) => {
-  const subjectEl = document.querySelector<HTMLInputElement>(SUBJECT_SELECTOR);
+  const root = activeComposeEl ?? document;
+  const subjectEl = root.querySelector<HTMLInputElement>(SUBJECT_SELECTOR);
   if (!subjectEl) {
     console.error('[ToneFit] 제목 입력창을 찾을 수 없습니다');
     return;
@@ -680,9 +683,15 @@ const getBodyTextWithoutSignature = (bodyEl: HTMLElement): string => {
   const sigEl = bodyEl.querySelector<HTMLElement>(SIG_SELECTOR);
   if (!sigEl) return bodyEl.innerText.trim();
 
+  // sigEl이 중첩 구조일 수 있으므로 bodyEl의 직계 자식 조상을 찾음
+  let sigRoot: Node = sigEl;
+  while (sigRoot.parentNode && sigRoot.parentNode !== bodyEl) {
+    sigRoot = sigRoot.parentNode;
+  }
+
   const parts: string[] = [];
   let node: ChildNode | null = bodyEl.firstChild;
-  while (node && node !== sigEl) {
+  while (node && node !== sigRoot) {
     if (node instanceof HTMLElement) {
       parts.push(node.innerText);
     } else if (node.nodeType === Node.TEXT_NODE) {
@@ -714,8 +723,11 @@ const snapshotInitialBody = (composeEl: HTMLElement) => {
 };
 
 /**
- * 사용자가 입력한 글자수 = 현재 서명-이전 텍스트 길이 - 초기 스냅샷
- * (서명 안에 타이핑하는 경우는 카운트 못하지만, 서명 이전 입력이 표준 동작)
+ * 교정/생성 모드 분기용 글자수.
+ * - 빈 창(서명만): initialLen ≈ current → typed ≈ 0 → 생성하기
+ * - 새 메일 작성 중: current > initialLen → typed > 0 → 교정하기
+ * - 임시보관함(기존 내용 있음): initialLen = current(스냅샷) → typed = 0이 되는 문제
+ *   → initialLen이 있어도 current 자체가 threshold를 넘으면 current를 그대로 사용
  */
 const getUserTypedLength = (
   bodyEl: HTMLElement,
@@ -730,21 +742,23 @@ const getUserTypedLength = (
     console.error('[ToneFit] 스냅샷 없음 — initialLen=0 가정');
   }
 
-  const typed = Math.max(0, current - initialLen);
+  // initialLen > 0 = 열릴 때부터 내용이 있는 경우(임시보관함 등) → current 그대로 사용
+  // initialLen = 0 = 빈 새 창 → 사용자가 입력한 만큼(current - initialLen)
+  const typed = initialLen > 0 ? current : Math.max(0, current - initialLen);
   if (DEBUG)
     console.error(
       '[ToneFit] 현재(서명제외):',
       current,
       '/ 초기:',
       initialLen,
-      '/ 사용자입력:',
+      '/ 유효글자수:',
       typed
     );
   return typed;
 };
 
 const injectBody = (content: string) => {
-  const bodyEl = getBodyElement();
+  const bodyEl = getBodyElement(activeComposeEl);
   if (!bodyEl) {
     if (DEBUG)
       console.error('[ToneFit] 본문 영역을 찾을 수 없습니다.', BODY_SELECTORS);
@@ -841,7 +855,7 @@ const injectReplyBody = (content: string, attempt = 0) => {
   const MAX_ATTEMPTS = 3;
   const VERIFY_DELAY = 500;
 
-  const bodyEl = getBodyElement();
+  const bodyEl = getBodyElement(activeComposeEl);
   if (DEBUG)
     console.error(
       '[ToneFit] injectReplyBody — attempt:',
@@ -985,10 +999,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'GET_EMAIL_CONTENT') {
-    const bodyEl = getBodyElement();
-    const subjectEl = document.querySelector<HTMLInputElement>(
-      'input[name="subjectbox"]'
-    );
+    const composeContainer = activeComposeEl ?? getComposeContainer();
+    const bodyEl = getBodyElement(composeContainer);
+    const subjectEl = composeContainer
+      ? composeContainer.querySelector<HTMLInputElement>('input[name="subjectbox"]')
+      : document.querySelector<HTMLInputElement>('input[name="subjectbox"]');
     if (DEBUG && bodyEl) {
       console.error('[ToneFit] bodyEl 구조:');
       Array.from(bodyEl.children).forEach((c, i) => {
@@ -1002,7 +1017,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       content: bodyEl ? getBodyTextWithoutSignature(bodyEl) : '',
       subject: subjectEl?.value ?? '',
       userLength: bodyEl
-        ? getUserTypedLength(bodyEl, getComposeContainer())
+        ? getUserTypedLength(bodyEl, composeContainer)
         : 0,
       composeOpen: isComposeOpen(),
     });

@@ -32,17 +32,17 @@ import {
   useCallback,
   useRef,
   startTransition,
-} from 'react';
-import type { ReactNode } from 'react';
-import { ChipV2, ButtonLongV2 } from '@/components/ui';
+} from "react";
+import type { ReactNode } from "react";
+import { ChipV2, ButtonLongV2, Icon } from "@/components/ui";
 import type {
   ReceiverType,
   PurposeType,
   CorrectionChange,
   CorrectionLabelType,
   CorrectionsRejectionItem,
-} from '@/types';
-import imgPanelIcon from '@/assets/mail-logo.svg';
+} from "@/types";
+import imgPanelIcon from "@/assets/mail-logo.svg";
 import {
   MailPackingIcon,
   MailReadingIcon,
@@ -50,27 +50,27 @@ import {
   LoginExpiredIcon,
   AIPencilWritingIcon,
   NoCorrectionIcon,
-} from '@/components/ui/MotionIcons';
-import { devLog } from '@/utils/devLogger';
+} from "@/components/ui/MotionIcons";
+import { devLog } from "@/utils/devLogger";
 
 // =============================================================
 // 도메인 데이터
 // =============================================================
 
 const RECEIVER_OPTIONS: { value: ReceiverType; label: string }[] = [
-  { value: 'DIRECT_SUPERVISOR', label: '상사' },
-  { value: 'OTHER_DEPT_COLLEAGUE', label: '동료' },
-  { value: 'CLIENT', label: '고객사' },
-  { value: 'EXTERNAL_PARTNER', label: '협력사' },
+  { value: "DIRECT_SUPERVISOR", label: "상사" },
+  { value: "OTHER_DEPT_COLLEAGUE", label: "동료" },
+  { value: "CLIENT", label: "고객사" },
+  { value: "EXTERNAL_PARTNER", label: "협력사" },
 ];
 
 const PURPOSE_OPTIONS: { value: PurposeType; label: string }[] = [
-  { value: 'REPORT', label: '보고' },
-  { value: 'REQUEST', label: '요청' },
-  { value: 'NOTICE', label: '안내' },
-  { value: 'THANKS', label: '감사' },
-  { value: 'APOLOGY', label: '사과' },
-  { value: 'DECLINE', label: '거절' },
+  { value: "REPORT", label: "보고" },
+  { value: "REQUEST", label: "요청" },
+  { value: "NOTICE", label: "안내" },
+  { value: "THANKS", label: "감사" },
+  { value: "APOLOGY", label: "사과" },
+  { value: "DECLINE", label: "거절" },
 ];
 
 /** 이메일 내용 입력 최대 글자 수 (생성용 brief — 교정용 2000자와 다름) */
@@ -78,37 +78,37 @@ const EMAIL_MAX = 200;
 
 /** [DEV ONLY] 교정 리뷰 화면 미리보기용 mock 데이터 */
 const DEV_MOCK_ORIGINAL =
-  '팀장님, 보고서 확인해주세요. 문제 있으면 알려주세요.';
+  "팀장님, 보고서 확인해주세요. 문제 있으면 알려주세요.";
 
-const DEV_MOCK_REPLY_ANALYSIS: import('@/types').ReplyAnalysisResponse = {
+const DEV_MOCK_REPLY_ANALYSIS: import("@/types").ReplyAnalysisResponse = {
   conversation:
-    '김팀장이 프로젝트 일정 조정 가능 여부를 문의했고, 추가로 예산 확인도 요청했습니다.',
+    "김팀장이 프로젝트 일정 조정 가능 여부를 문의했고, 추가로 예산 확인도 요청했습니다.",
   recipient: {
-    type: 'DIRECT_SUPERVISOR',
-    label: '상사',
-    confidence: 'high',
-    reason: '발신인이 팀장 직함을 사용하고 있습니다.',
+    type: "DIRECT_SUPERVISOR",
+    label: "상사",
+    confidence: "high",
+    reason: "발신인이 팀장 직함을 사용하고 있습니다.",
   },
   questions: [
-    { id: 1, question: '프로젝트 일정 조정이 가능한가요?' },
-    { id: 2, question: '예산 변경 사항이 있나요?' },
-    { id: 3, question: '추가로 전달해야 할 사항이 있나요?' },
+    { id: 1, question: "프로젝트 일정 조정이 가능한가요?" },
+    { id: 2, question: "예산 변경 사항이 있나요?" },
+    { id: 3, question: "추가로 전달해야 할 사항이 있나요?" },
   ],
 };
 
 const DEV_MOCK_REPLY_SUMMARIES: string[] = [
-  '프로젝트 일정 조정 가능 여부 문의',
-  '예산 항목 확인 요청 및 다음 주 회의 일정 조율 제안',
+  "프로젝트 일정 조정 가능 여부 문의",
+  "예산 항목 확인 요청 및 다음 주 회의 일정 조율 제안",
 ];
-const DEV_MOCK_CHANGES: import('@/types').CorrectionChange[] = [
+const DEV_MOCK_CHANGES: import("@/types").CorrectionChange[] = [
   {
     index: 0,
     start: 8,
     end: 14,
-    original: '확인해주세요',
-    corrected: '확인 부탁드립니다',
-    reason: '구어적인 요청을 업무 메일에 맞는 정중한 표현으로 다듬었습니다.',
-    label: 'AUTO',
+    original: "확인해주세요",
+    corrected: "확인 부탁드립니다",
+    reason: "구어적인 요청을 업무 메일에 맞는 정중한 표현으로 다듬었습니다.",
+    label: "AUTO",
     confidence: 0.95,
     applied_rules: [],
     action: null,
@@ -117,10 +117,10 @@ const DEV_MOCK_CHANGES: import('@/types').CorrectionChange[] = [
     index: 1,
     start: 17,
     end: 23,
-    original: '문제 있으면',
-    corrected: '특이사항 있으면',
-    reason: '모호한 표현을 협업자가 바로 이해할 수 있게 구체화했습니다.',
-    label: 'SUGGEST',
+    original: "문제 있으면",
+    corrected: "특이사항 있으면",
+    reason: "모호한 표현을 협업자가 바로 이해할 수 있게 구체화했습니다.",
+    label: "SUGGEST",
     confidence: 0.88,
     applied_rules: [],
     action: null,
@@ -129,10 +129,10 @@ const DEV_MOCK_CHANGES: import('@/types').CorrectionChange[] = [
     index: 2,
     start: 24,
     end: 29,
-    original: '알려주세요',
-    corrected: '말씀해 주세요',
-    reason: '친근한 느낌은 유지하되 비즈니스 메일 톤에 맞게 정리했습니다.',
-    label: 'STYLE',
+    original: "알려주세요",
+    corrected: "말씀해 주세요",
+    reason: "친근한 느낌은 유지하되 비즈니스 메일 톤에 맞게 정리했습니다.",
+    label: "STYLE",
     confidence: 0.75,
     applied_rules: [],
     action: null,
@@ -148,10 +148,10 @@ const DEV_MOCK_CHANGES: import('@/types').CorrectionChange[] = [
  * 완성된 한글 음절(가-힣), 영문, 숫자, 특수문자가 하나라도 있으면 false
  */
 const isOnlyJamoOrSpaces = (text: string): boolean => {
-  const withoutHtml = text.replace(/<[^>]*>/g, '');
-  const stripped = withoutHtml.replace(/\s/g, '');
+  const withoutHtml = text.replace(/<[^>]*>/g, "");
+  const stripped = withoutHtml.replace(/\s/g, "");
   if (!stripped) return true;
-  const withoutEmoji = stripped.replace(/\p{Extended_Pictographic}/gu, '');
+  const withoutEmoji = stripped.replace(/\p{Extended_Pictographic}/gu, "");
   if (!withoutEmoji) return true;
   return [...withoutEmoji].every((char) => {
     const code = char.charCodeAt(0);
@@ -164,18 +164,18 @@ const isOnlyJamoOrSpaces = (text: string): boolean => {
 // =============================================================
 
 export type PanelView =
-  | 'input'
-  | 'loading'
-  | 'success'
-  | 'error'
-  | 'correction-review'
-  | 'no-correction'
-  | 'reply-loading-analysis'
-  | 'reply-consent'
-  | 'reply-input'
-  | 'reply-loading-write'
-  | 'reply-success';
-export type PanelMode = 'generate' | 'correct' | 'reply';
+  | "input"
+  | "loading"
+  | "success"
+  | "error"
+  | "correction-review"
+  | "no-correction"
+  | "reply-loading-analysis"
+  | "reply-consent"
+  | "reply-input"
+  | "reply-loading-write"
+  | "reply-success";
+export type PanelMode = "generate" | "correct" | "reply";
 
 /** onRequest에 전달되는 생성 파라미터 */
 export interface GenerateParams {
@@ -188,9 +188,9 @@ export interface GenerateParams {
 
 /** onRequest가 반환하는 생성 결과 — 생성 모드와 교정 모드 분기 */
 export type GenerateResult =
-  | { type: 'email'; subject: string; content: string }
+  | { type: "email"; subject: string; content: string }
   | {
-      type: 'correction';
+      type: "correction";
       changes: CorrectionChange[];
       originalEmail: string;
       receiver: ReceiverType;
@@ -231,7 +231,7 @@ export interface ToneFitPanelProps {
    * 'demo': 생성 완료 후 "ToneFit 시작하기" 버튼 (기본값)
    * 'extension': 생성 완료 후 "새 초안 만들기" 버튼
    */
-  mode?: 'demo' | 'extension';
+  mode?: "demo" | "extension";
   /** 입력 뷰 상단에 렌더할 슬롯 (툴팁 등 익스텐션 전용 UI) */
   tooltipSlot?: ReactNode;
   /** 수신자/목적 칩 선택 시 콜백 (툴팁 dismiss 등에 활용) */
@@ -256,7 +256,7 @@ export interface ToneFitPanelProps {
   onCorrectionsRejected?: (
     items: CorrectionsRejectionItem[],
     receiver: ReceiverType,
-    purpose: PurposeType
+    purpose: PurposeType,
   ) => void;
   /** [DEV ONLY] 패널 뷰 강제 지정. undefined면 내부 상태 사용 */
   devForceView?: PanelView;
@@ -272,7 +272,7 @@ export interface ToneFitPanelProps {
    */
   onPreCheck?: () => Promise<void>;
   /** 회신 분석 대상 메일 목록 */
-  replyMails?: import('@/types').ReplyMail[];
+  replyMails?: import("@/types").ReplyMail[];
   replyTo?: string[];
   replyCc?: string[];
   /** 답장 중인 원본 메일 제목 */
@@ -283,11 +283,11 @@ export interface ToneFitPanelProps {
   replyError?: string;
   /** 회신 분석 요청 함수 (summary + analysis 병렬 호출) */
   onReplyAnalysisRequest?: (
-    mails: import('@/types').ReplyMail[],
+    mails: import("@/types").ReplyMail[],
     to?: string[],
-    cc?: string[]
+    cc?: string[],
   ) => Promise<{
-    analysis: import('@/types').ReplyAnalysisResponse | null;
+    analysis: import("@/types").ReplyAnalysisResponse | null;
     summaries: string[];
   }>;
   /** 회신 분석 중 중단하기 — 요청 abort 후 패널 닫기 */
@@ -296,8 +296,8 @@ export interface ToneFitPanelProps {
   onAgreeMailRead?: () => Promise<void>;
   /** 회신 작성 요청 함수 */
   onReplyWriteRequest?: (
-    data: import('@/types').ReplyRequest
-  ) => Promise<import('@/types').ReplyResponse>;
+    data: import("@/types").ReplyRequest,
+  ) => Promise<import("@/types").ReplyResponse>;
   /** 회신 완료 콜백 */
   onReplySuccess?: (subject: string, content: string) => void;
   /** 교정 항목 없음 화면의 "확인" 버튼 콜백 */
@@ -311,11 +311,11 @@ export interface ToneFitPanelProps {
 const getLoadingMessage = (
   elapsed: number,
   receiverLabel: string,
-  purposeLabel: string
+  purposeLabel: string,
 ): string => {
   if (elapsed < 5) return `${receiverLabel}에게 맞는 표현을 찾고 있어요.`;
   if (elapsed < 10) return `${purposeLabel}에 맞는 초안을 준비하고 있어요.`;
-  return '초안을 완성하고 있어요. 잠깐만요.';
+  return "초안을 완성하고 있어요. 잠깐만요.";
 };
 
 // =============================================================
@@ -333,7 +333,7 @@ const PanelNoCorrectionBody = ({ onConfirm }: { onConfirm?: () => void }) => (
         </p>
         <p className="text-base font-normal leading-6 text-text-secondary whitespace-pre-line">
           {
-            '지금 메일은 그대로 보내도 좋아요.\n작성창에서 마지막으로 확인해 주세요.'
+            "지금 메일은 그대로 보내도 좋아요.\n작성창에서 마지막으로 확인해 주세요."
           }
         </p>
       </div>
@@ -409,7 +409,7 @@ const ConsentCheckIcon = ({ checked }: { checked: boolean }) => (
     viewBox="0 0 16 16"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={checked ? 'text-text-brand' : 'text-text-placeholder'}
+    className={checked ? "text-text-brand" : "text-text-placeholder"}
   >
     <path
       d="M2.5 8.5L5.5 11.5L13.5 4.5"
@@ -460,14 +460,14 @@ const ConsentWhiteCheckIcon = () => (
 
 const REPLY_CONSENT_TERMS = [
   {
-    key: 'privacy',
-    label: '(필수) 개인정보 수집·이용 동의',
-    url: 'https://tonefit.kr/privacy',
+    key: "privacy",
+    label: "(필수) 개인정보 수집·이용 동의",
+    url: "https://tonefit.kr/privacy",
   },
   {
-    key: 'overseas',
-    label: '(필수) 개인정보 국외이전 동의',
-    url: 'https://tonefit.kr/overseas-transfer',
+    key: "overseas",
+    label: "(필수) 개인정보 국외이전 동의",
+    url: "https://tonefit.kr/overseas-transfer",
   },
 ] as const;
 
@@ -488,7 +488,7 @@ const PanelReplyConsentBody = ({
     setChecked({ privacy: next, overseas: next });
   };
 
-  const handleToggle = (key: 'privacy' | 'overseas') => {
+  const handleToggle = (key: "privacy" | "overseas") => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -543,8 +543,8 @@ const PanelReplyConsentBody = ({
                 <span
                   className={`text-sm font-semibold leading-5 tracking-tight whitespace-nowrap ${
                     checked[term.key]
-                      ? 'text-text-secondary'
-                      : 'text-text-placeholder'
+                      ? "text-text-secondary"
+                      : "text-text-placeholder"
                   }`}
                 >
                   {term.label}
@@ -567,7 +567,7 @@ const PanelReplyConsentBody = ({
       {/* CTA */}
       <div className="w-full">
         <ButtonLongV2 disabled={!allChecked || isLoading} onClick={handleStart}>
-          {isLoading ? '처리 중...' : '시작하기'}
+          {isLoading ? "처리 중..." : "시작하기"}
         </ButtonLongV2>
       </div>
     </div>
@@ -634,7 +634,7 @@ const PanelReplyWriteLoadingBody = ({
     <PanelLoadingBody
       receiverLabel=""
       purposeLabel=""
-      message={'답해주신 내용으로\n회신을 작성하고 있어요'}
+      message={"답해주신 내용으로\n회신을 작성하고 있어요"}
       onCancel={onCancel}
     />
   );
@@ -678,17 +678,17 @@ const PanelReplyInputBody = ({
   originalSubject,
   onSubmit,
 }: {
-  analysis: import('@/types').ReplyAnalysisResponse;
+  analysis: import("@/types").ReplyAnalysisResponse;
   summaries: string[];
   originalSubject?: string;
-  onSubmit: (data: import('@/types').ReplyRequest) => void;
+  onSubmit: (data: import("@/types").ReplyRequest) => void;
 }) => {
   const [receiver, setReceiver] = useState<ReceiverType | null>(
-    analysis.recipient?.type ?? null
+    analysis.recipient?.type ?? null,
   );
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [freeInput, setFreeInput] = useState('');
-  const [extraMessage, setExtraMessage] = useState('');
+  const [freeInput, setFreeInput] = useState("");
+  const [extraMessage, setExtraMessage] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(true);
 
   const answeredCount = Object.values(answers).filter((v) => v.trim()).length;
@@ -737,7 +737,7 @@ const PanelReplyInputBody = ({
               type="button"
               onClick={() => setSummaryOpen((o) => !o)}
               className="text-text-tertiary cursor-pointer"
-              aria-label={summaryOpen ? '접기' : '펼치기'}
+              aria-label={summaryOpen ? "접기" : "펼치기"}
             >
               <svg
                 width="20"
@@ -745,7 +745,7 @@ const PanelReplyInputBody = ({
                 viewBox="0 0 20 20"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className={`transition-transform duration-200 ${summaryOpen ? 'rotate-90' : ''}`}
+                className={`transition-transform duration-200 ${summaryOpen ? "rotate-90" : ""}`}
               >
                 <path
                   d="M13.8297 10.8192C14.3984 10.4211 14.3984 9.57887 13.8297 9.18077L6.57346 4.10142C5.91069 3.63748 5 4.11163 5 4.92066L5 15.0793C5 15.8884 5.91069 16.3625 6.57346 15.8986L13.8297 10.8192Z"
@@ -836,7 +836,7 @@ const PanelReplyInputBody = ({
                       </div>
                       <input
                         type="text"
-                        value={answers[q.id] ?? ''}
+                        value={answers[q.id] ?? ""}
                         onChange={(e) =>
                           setAnswers((prev) => ({
                             ...prev,
@@ -1056,7 +1056,7 @@ const PanelCorrectionSuccessBody = ({
                   <div key={c.index} className="flex gap-2.5 items-center">
                     <div className="bg-background-brand flex flex-col items-center justify-center px-2.5 py-0.5 rounded-full shrink-0 min-w-9">
                       <span className="text-xs font-semibold leading-4 text-text-inverse text-center">
-                        {String(i + 1).padStart(2, '0')}
+                        {String(i + 1).padStart(2, "0")}
                       </span>
                     </div>
                     <div className="flex flex-1 gap-1.5 items-center min-w-0">
@@ -1110,7 +1110,7 @@ const PanelCorrectionSuccessBody = ({
                       <span className="text-xs font-semibold leading-4 text-text-placeholder text-center">
                         {String(acceptedChanges.length + i + 1).padStart(
                           2,
-                          '0'
+                          "0",
                         )}
                       </span>
                     </div>
@@ -1135,18 +1135,39 @@ const PanelCorrectionSuccessBody = ({
 
 /** 생성/교정 성공 화면 */
 const PanelSuccessBody = ({
-  mode = 'demo',
+  mode = "demo",
   panelMode,
+  draftText = "",
   onReset,
+  showToast,
 }: {
-  mode?: 'demo' | 'extension';
+  mode?: "demo" | "extension";
   panelMode?: PanelMode;
+  draftText?: string;
   onReset: () => void;
-}) => (
-  <div className="flex-1 flex flex-col items-center justify-between px-4 py-5 h-full">
-    <div className="flex-1 flex flex-col items-center justify-center py-12">
-      <div className="flex flex-col gap-5 items-center">
-        {mode === 'extension' && panelMode !== 'correct' ? (
+  showToast?: (message: string) => void;
+}) => {
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard
+      .writeText(draftText)
+      .then(() => {
+        setCopied(true);
+        showToast?.("복사했어요. 작성창에 붙여넣으면 돼요.");
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setCopied(false), 3000);
+      })
+      .catch(() => {});
+  }, [draftText, showToast]);
+
+  const isDraftMode = mode === "extension" && panelMode !== "correct";
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-between px-4 py-5 h-full gap-5 overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center py-12 min-h-0 gap-5">
+        {isDraftMode ? (
           <MailPackingIcon size={88} />
         ) : (
           <div className="size-15 rounded-full bg-action-primary-default flex items-center justify-center shrink-0">
@@ -1161,16 +1182,16 @@ const PanelSuccessBody = ({
             </svg>
           </div>
         )}
-        <div className="flex flex-col gap-3.5 items-center text-center">
+        <div className="flex flex-col gap-3.5 items-center text-center shrink-0">
           <p className="text-xl-plus font-semibold leading-7.5 tracking-tight text-text-primary">
-            {panelMode === 'correct' ? (
+            {panelMode === "correct" ? (
               <>
                 다듬은 메일을 작성칸에 넣어뒀어요.
                 <br />
                 확인하고 보내 주세요.
               </>
-            ) : mode === 'extension' ? (
-              '메일 초안이 완성됐어요'
+            ) : isDraftMode ? (
+              "초안이 준비됐어요"
             ) : (
               <>
                 쓰는 법을 몰라도 된다는 게,
@@ -1180,69 +1201,118 @@ const PanelSuccessBody = ({
             )}
           </p>
           <p className="text-base font-normal leading-6 tracking-tight text-text-secondary text-center">
-            {panelMode === 'correct' ? (
+            {panelMode === "correct" ? (
               <>
                 필요한 부분은 작성칸에서
                 <br />한 번 더 다듬어 보낼 수 있어요.
               </>
-            ) : mode === 'extension' ? (
-              <>
-                Gmail 작성 화면에 바로 넣어뒀어요.
-                <br />
-                확인하고 전송하면 끝이에요.
-              </>
+            ) : isDraftMode ? (
+              "Gmail 작성창에 담아뒀어요."
             ) : (
-              '간단히 설치하고, 매번 이렇게 완성해보세요.'
+              "간단히 설치하고, 매번 이렇게 완성해보세요."
             )}
           </p>
         </div>
+
+        {isDraftMode && (
+          <div className="w-full bg-background-surface rounded-2xl p-3.5 shadow-[0px_1px_4px_rgba(124,77,255,0.1)] flex flex-col gap-2.5 h-62.5">
+            <div className="flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="9"
+                    height="9"
+                    viewBox="0 0 9 9"
+                    fill="none"
+                  >
+                    <path
+                      d="M5.29338 0.227108C5.05537 0.0786829 4.7805 0 4.5 0C4.18699 -0.00018784 3.88177 0.0975907 3.62714 0.279626C3.3725 0.46166 3.18122 0.718823 3.08012 1.01505L2.55535 2.55488L1.01703 3.07965L0.840106 3.15162C0.573463 3.28215 0.351574 3.4889 0.202558 3.74568C0.0535424 4.00245 -0.0158909 4.29768 0.00305782 4.59395C0.0220065 4.89023 0.128483 5.17421 0.308996 5.4099C0.489508 5.6456 0.735929 5.8224 1.01703 5.9179L2.55685 6.44267L3.08162 7.981L3.15359 8.15642C3.28399 8.4231 3.49062 8.64508 3.7473 8.79421C4.00398 8.94334 4.29916 9.01292 4.59542 8.99414C4.89168 8.97535 5.1757 8.86904 5.41149 8.68868C5.64727 8.50831 5.82421 8.26202 5.91988 7.981L6.44465 6.44117L7.98297 5.9164L8.15989 5.84444C8.42654 5.7139 8.64843 5.50715 8.79744 5.25038C8.94646 4.99361 9.01589 4.69837 8.99694 4.4021C8.97799 4.10583 8.87152 3.82185 8.691 3.58615C8.51049 3.35045 8.26407 3.17365 7.98297 3.07815L6.44315 2.55338L5.91838 1.01505L5.84641 0.839632C5.72299 0.587746 5.53139 0.375532 5.29338 0.227108Z"
+                      fill="#7C4DFF"
+                    />
+                  </svg>
+                </span>
+                <p className="text-xs text-text-secondary tracking-tight leading-4">
+                  작성창에 안 담겼다면 여기서 복사하세요.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="shrink-0 size-4.5 flex items-center justify-center cursor-pointer"
+                aria-label="복사"
+              >
+                {copied ? (
+                  <Icon
+                    name="check-circle"
+                    size={18}
+                    color="var(--color-text-brand)"
+                  />
+                ) : (
+                  <Icon
+                    name="copy"
+                    size={18}
+                    color="var(--color-border-strong)"
+                  />
+                )}
+              </button>
+            </div>
+            <div className="h-px bg-border-default shrink-0" />
+            <div className="overflow-y-auto min-h-0 my-2.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-background-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+              <p className="text-xs text-text-secondary tracking-tight leading-4.5 whitespace-pre-wrap px-1.5 py-1">
+                {draftText}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full shrink-0 flex flex-col gap-2">
+        {mode === "demo" ? (
+          <ButtonLongV2
+            onClick={() =>
+              window.open(
+                "https://chromewebstore.google.com/category/extensions",
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            ToneFit 시작하기
+          </ButtonLongV2>
+        ) : (
+          <ButtonLongV2 onClick={onReset}>새 초안 만들기</ButtonLongV2>
+        )}
       </div>
     </div>
-    <div className="w-full shrink-0 flex flex-col gap-2">
-      {mode === 'demo' ? (
-        <ButtonLongV2
-          onClick={() =>
-            window.open(
-              'https://chromewebstore.google.com/category/extensions',
-              '_blank',
-              'noopener,noreferrer'
-            )
-          }
-        >
-          ToneFit 시작하기
-        </ButtonLongV2>
-      ) : (
-        <ButtonLongV2 onClick={onReset}>새 초안 만들기</ButtonLongV2>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 // =============================================================
 // 에러 variant 타입
 // =============================================================
 
 export type ReplyErrorVariant =
-  | 'reply_empty'
-  | 'reply_no_quote'
-  | 'reply_too_long'
-  | 'reply_non_korean'
-  | 'reply_api_error'
-  | 'reply_extract_error';
+  | "reply_empty"
+  | "reply_no_quote"
+  | "reply_too_long"
+  | "reply_non_korean"
+  | "reply_api_error"
+  | "reply_extract_error";
 
 export type ErrorVariant =
-  | 'generic'
-  | 'session_expired'
-  | 'rate_limited'
+  | "generic"
+  | "session_expired"
+  | "rate_limited"
   | ReplyErrorVariant;
 
 const REPLY_ERROR_VARIANTS = new Set<string>([
-  'reply_empty',
-  'reply_no_quote',
-  'reply_too_long',
-  'reply_non_korean',
-  'reply_api_error',
-  'reply_extract_error',
+  "reply_empty",
+  "reply_no_quote",
+  "reply_too_long",
+  "reply_non_korean",
+  "reply_api_error",
+  "reply_extract_error",
 ]);
 
 const REPLY_ERROR_CONFIG: Record<
@@ -1250,28 +1320,28 @@ const REPLY_ERROR_CONFIG: Record<
   { title: string; desc: string }
 > = {
   reply_empty: {
-    title: '메일 내용을 읽지 못했어요.',
-    desc: '대화를 펼친 뒤 다시 시도해 주세요.',
+    title: "메일 내용을 읽지 못했어요.",
+    desc: "대화를 펼친 뒤 다시 시도해 주세요.",
   },
   reply_no_quote: {
-    title: '답장할 대화가 보이지 않아요.',
-    desc: '받은 메일을 연 상태에서 다시 시도해 주세요.',
+    title: "답장할 대화가 보이지 않아요.",
+    desc: "받은 메일을 연 상태에서 다시 시도해 주세요.",
   },
   reply_too_long: {
-    title: '대화가 길어 정리하기 어려워요.',
-    desc: '필요한 내용만 남기고 다시 시도해 주세요.',
+    title: "대화가 길어 정리하기 어려워요.",
+    desc: "필요한 내용만 남기고 다시 시도해 주세요.",
   },
   reply_non_korean: {
-    title: '한국어 메일만 도와드릴 수 있어요.',
-    desc: '한국어 메일을 연 상태에서 다시 시도해 주세요.',
+    title: "한국어 메일만 도와드릴 수 있어요.",
+    desc: "한국어 메일을 연 상태에서 다시 시도해 주세요.",
   },
   reply_api_error: {
-    title: '요청이 많아 잠시 쉬어갈게요.',
-    desc: '잠시 후 다시 시도해 주세요.',
+    title: "요청이 많아 잠시 쉬어갈게요.",
+    desc: "잠시 후 다시 시도해 주세요.",
   },
   reply_extract_error: {
-    title: '메일 내용을 읽지 못했어요.',
-    desc: '대화를 펼친 뒤 다시 시도해 주세요.',
+    title: "메일 내용을 읽지 못했어요.",
+    desc: "대화를 펼친 뒤 다시 시도해 주세요.",
   },
 };
 
@@ -1288,62 +1358,62 @@ const ERROR_CONFIG: Record<
 > = {
   generic: {
     generate: {
-      title: '초안 생성을 완료하지 못했어요',
-      descLine1: '잠시 후 다시 시도해 주세요.',
-      descLine2: '',
+      title: "초안 생성을 완료하지 못했어요",
+      descLine1: "잠시 후 다시 시도해 주세요.",
+      descLine2: "",
     },
     correct: {
-      title: '교정을 완료하지 못했어요',
-      descLine1: '처리 중에 일시적인 문제가 생겼어요.',
-      descLine2: '',
+      title: "교정을 완료하지 못했어요",
+      descLine1: "처리 중에 일시적인 문제가 생겼어요.",
+      descLine2: "",
     },
     reply: {
-      title: '회신 작성을 완료하지 못했어요',
-      descLine1: '처리 중에 일시적인 문제가 생겼어요.',
-      descLine2: '잠시 후 다시 시도해 주세요.',
+      title: "회신 작성을 완료하지 못했어요",
+      descLine1: "처리 중에 일시적인 문제가 생겼어요.",
+      descLine2: "잠시 후 다시 시도해 주세요.",
     },
   },
   session_expired: {
     generate: {
-      title: '로그인이 만료되었어요.',
-      descLine1: '다시 로그인하면 이어서 생성할 수 있어요.',
-      descLine2: '',
+      title: "로그인이 만료되었어요.",
+      descLine1: "다시 로그인하면 이어서 생성할 수 있어요.",
+      descLine2: "",
     },
     correct: {
-      title: '로그인이 만료되었어요.',
-      descLine1: '다시 로그인하면 이어서 교정할 수 있어요.',
-      descLine2: '',
+      title: "로그인이 만료되었어요.",
+      descLine1: "다시 로그인하면 이어서 교정할 수 있어요.",
+      descLine2: "",
     },
     reply: {
-      title: '로그인이 만료되었어요.',
-      descLine1: '다시 로그인해 주세요.',
-      descLine2: '',
+      title: "로그인이 만료되었어요.",
+      descLine1: "다시 로그인해 주세요.",
+      descLine2: "",
     },
   },
   rate_limited: {
     generate: {
-      title: '잠시만 기다려 주세요',
-      descLine1: '짧은 시간에 생성 요청이 많았어요.',
-      descLine2: '1분 후 다시 시도해 주세요.',
-      descLine3: '',
+      title: "잠시만 기다려 주세요",
+      descLine1: "짧은 시간에 생성 요청이 많았어요.",
+      descLine2: "1분 후 다시 시도해 주세요.",
+      descLine3: "",
     },
     correct: {
-      title: '잠시만 기다려 주세요',
-      descLine1: '짧은 시간에 교정 요청이 많았어요.',
-      descLine2: '1분 후 다시 시도해 주세요.',
+      title: "잠시만 기다려 주세요",
+      descLine1: "짧은 시간에 교정 요청이 많았어요.",
+      descLine2: "1분 후 다시 시도해 주세요.",
     },
     reply: {
-      title: '한도가 초과되었어요',
-      descLine1: '잠시 후 재시도 해주세요.',
-      descLine2: '',
+      title: "한도가 초과되었어요",
+      descLine1: "잠시 후 재시도 해주세요.",
+      descLine2: "",
     },
   },
 };
 
 /** 생성 실패 화면 */
 const PanelErrorBody = ({
-  variant = 'generic',
-  panelMode = 'generate',
+  variant = "generic",
+  panelMode = "generate",
   onRetry,
   onGoToLogin,
 }: {
@@ -1354,11 +1424,11 @@ const PanelErrorBody = ({
 }) => {
   // rate_limited: 60초 카운트다운 → 0 도달 시 다시 시도 버튼 활성화
   const [countdown, setCountdown] = useState(
-    variant === 'rate_limited' ? 60 : 0
+    variant === "rate_limited" ? 60 : 0,
   );
 
   useEffect(() => {
-    if (variant !== 'rate_limited') return;
+    if (variant !== "rate_limited") return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -1404,23 +1474,23 @@ const PanelErrorBody = ({
     ];
 
   // CTA 버튼 설정
-  const isCounting = variant === 'rate_limited' && countdown > 0;
-  const mm = String(Math.floor(countdown / 60)).padStart(2, '0');
-  const ss = String(countdown % 60).padStart(2, '0');
+  const isCounting = variant === "rate_limited" && countdown > 0;
+  const mm = String(Math.floor(countdown / 60)).padStart(2, "0");
+  const ss = String(countdown % 60).padStart(2, "0");
   const buttonLabel =
-    variant === 'session_expired'
-      ? '로그인하기'
+    variant === "session_expired"
+      ? "로그인하기"
       : isCounting
         ? `${mm}:${ss}`
-        : '다시 시도';
+        : "다시 시도";
   const handleAction =
-    variant === 'session_expired' ? (onGoToLogin ?? onRetry) : onRetry;
+    variant === "session_expired" ? (onGoToLogin ?? onRetry) : onRetry;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-between px-4 py-5 h-full">
       <div className="flex-1 flex flex-col items-center justify-center gap-10 py-12">
         <div className="shrink-0">
-          {variant === 'session_expired' ? (
+          {variant === "session_expired" ? (
             <LoginExpiredIcon size={120} />
           ) : (
             <ErrorNoticeIcon size={120} />
@@ -1464,15 +1534,15 @@ const ModeSwitch = ({
   onChange: (m: PanelMode) => void;
 }) => (
   <div className="bg-background-muted rounded-2xl px-1 py-1 flex gap-1 shrink-0">
-    {(['generate', 'correct'] as PanelMode[]).map((m) => (
+    {(["generate", "correct"] as PanelMode[]).map((m) => (
       <button
         key={m}
         type="button"
         onClick={() => onChange(m)}
         className={`flex-1 py-2.5 rounded-xl text-sm font-semibold leading-5 tracking-tight transition-colors cursor-pointer
-          ${mode === m ? 'bg-background-surface text-text-brand' : 'text-text-placeholder'}`}
+          ${mode === m ? "bg-background-surface text-text-brand" : "text-text-placeholder"}`}
       >
-        {m === 'generate' ? '생성하기' : '교정하기'}
+        {m === "generate" ? "생성하기" : "교정하기"}
       </button>
     ))}
   </div>
@@ -1529,26 +1599,26 @@ const CorrectionHint = ({ onDismiss }: { onDismiss: () => void }) => (
 // 교정 결과 리뷰 패널
 // =============================================================
 
-type DecisionMap = Record<number, 'accepted' | 'rejected'>;
+type DecisionMap = Record<number, "accepted" | "rejected">;
 
 const LABEL_META: Record<
   CorrectionLabelType,
   { text: string; className: string }
 > = {
   AUTO: {
-    text: '필수',
+    text: "필수",
     className:
-      'bg-background-brand-subtle border border-border-focus text-text-brand',
+      "bg-background-brand-subtle border border-border-focus text-text-brand",
   },
   SUGGEST: {
-    text: '권장',
+    text: "권장",
     className:
-      'bg-background-surface border border-border-brand text-text-brand-strong',
+      "bg-background-surface border border-border-brand text-text-brand-strong",
   },
   STYLE: {
-    text: '선택',
+    text: "선택",
     className:
-      'bg-background-subtle border border-border-strong text-text-tertiary',
+      "bg-background-subtle border border-border-strong text-text-tertiary",
   },
 };
 
@@ -1588,8 +1658,8 @@ const CorrectionCard = ({
 }: {
   change: CorrectionChange;
   index: number;
-  decision: 'accepted' | 'rejected' | undefined;
-  onDecide: (idx: number, d: 'accepted' | 'rejected') => void;
+  decision: "accepted" | "rejected" | undefined;
+  onDecide: (idx: number, d: "accepted" | "rejected") => void;
   onUndo: (idx: number) => void;
   meaningDamage?: boolean;
   onToggleMeaningDamage?: (idx: number) => void;
@@ -1598,19 +1668,19 @@ const CorrectionCard = ({
 
   if (decision !== undefined) {
     const previewText =
-      decision === 'accepted' ? change.corrected : change.original;
-    const chipLabel = decision === 'accepted' ? '교정' : '원문';
+      decision === "accepted" ? change.corrected : change.original;
+    const chipLabel = decision === "accepted" ? "교정" : "원문";
     return (
       <div className="group cursor-pointer hover:bg-background-brand-subtle border border-border-inverse hover:border-border-brand flex gap-3 items-center overflow-hidden p-3 rounded-lg shadow-[0px_2px_8px_0px_rgba(0,0,0,0.08)] w-full">
         <div className="flex flex-1 gap-2 items-center min-w-0">
           <div className="bg-background-brand flex flex-col items-center justify-center px-2.5 py-0.5 rounded-full shrink-0 w-9">
             <span className="text-xs font-semibold leading-4 text-text-inverse text-center">
-              {String(index + 1).padStart(2, '0')}
+              {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           <div className="flex flex-1 gap-1.5 items-center min-w-0">
             <span
-              className={`flex items-center justify-center px-1.5 py-0.5 rounded text-xs font-semibold leading-4 shrink-0 group-hover:text-text-brand group-hover:bg-background-brand-100  ${decision === 'accepted' ? 'bg-background-brand-subtle text-text-brand' : 'text-text-placeholder bg-background-muted'}`}
+              className={`flex items-center justify-center px-1.5 py-0.5 rounded text-xs font-semibold leading-4 shrink-0 group-hover:text-text-brand group-hover:bg-background-brand-100  ${decision === "accepted" ? "bg-background-brand-subtle text-text-brand" : "text-text-placeholder bg-background-muted"}`}
             >
               {chipLabel}
             </span>
@@ -1620,14 +1690,14 @@ const CorrectionCard = ({
           </div>
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-3 shrink-0">
-          {decision === 'rejected' && (
+          {decision === "rejected" && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleMeaningDamage?.(change.index);
               }}
-              className={`cursor-pointer shrink-0 transition-opacity ${meaningDamage ? 'opacity-100' : ''}`}
+              className={`cursor-pointer shrink-0 transition-opacity ${meaningDamage ? "opacity-100" : ""}`}
               aria-label="의미훼손 의심 표시"
               title="의미훼손 의심"
             >
@@ -1636,7 +1706,7 @@ const CorrectionCard = ({
                 width="16"
                 height="16"
                 viewBox="0 0 16 16"
-                fill={meaningDamage ? 'rgba(124,77,255,0.15)' : 'none'}
+                fill={meaningDamage ? "rgba(124,77,255,0.15)" : "none"}
               >
                 <path
                   d="M14.4866 12L9.15329 2.66665C9.037 2.46146 8.86836 2.29078 8.66457 2.17203C8.46078 2.05329 8.22915 1.99072 7.99329 1.99072C7.75743 1.99072 7.52579 2.05329 7.322 2.17203C7.11822 2.29078 6.94958 2.46146 6.83329 2.66665L1.49995 12C1.38241 12.2036 1.32077 12.4346 1.32129 12.6697C1.32181 12.9047 1.38447 13.1355 1.50292 13.3385C1.62136 13.5416 1.79138 13.7097 1.99575 13.8259C2.20011 13.942 2.43156 14.0021 2.66662 14H13.3333C13.5672 13.9997 13.797 13.938 13.9995 13.8208C14.202 13.7037 14.3701 13.5354 14.487 13.3327C14.6038 13.1301 14.6653 12.9002 14.6653 12.6663C14.6652 12.4324 14.6036 12.2026 14.4866 12Z"
@@ -1682,7 +1752,7 @@ const CorrectionCard = ({
         <div className="flex flex-1 gap-1 items-center min-w-0">
           <div className="bg-background-brand flex flex-col items-center justify-center px-2.5 py-0.5 rounded-full shrink-0 w-9">
             <span className="text-xs font-semibold leading-4 text-text-inverse w-full text-center">
-              {String(index + 1).padStart(2, '0')}
+              {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           <span
@@ -1728,14 +1798,14 @@ const CorrectionCard = ({
       <div className="flex gap-2 items-end justify-center w-full">
         <button
           type="button"
-          onClick={() => onDecide(change.index, 'rejected')}
+          onClick={() => onDecide(change.index, "rejected")}
           className="flex flex-1 items-center justify-center px-4 py-1.5 rounded-lg border border-border-default bg-background-surface text-text-secondary text-xs font-semibold leading-4 transition-colors"
         >
           거절
         </button>
         <button
           type="button"
-          onClick={() => onDecide(change.index, 'accepted')}
+          onClick={() => onDecide(change.index, "accepted")}
           className="flex flex-1 items-center justify-center px-4 py-1.5 rounded-lg border border-background-brand bg-background-brand text-text-inverse text-xs font-semibold leading-4 transition-colors"
         >
           수락
@@ -1759,16 +1829,16 @@ const PanelCorrectionReviewBody = ({
   onComplete: (
     finalContent: string,
     acceptedChanges: CorrectionChange[],
-    rejectedItems: CorrectionsRejectionItem[]
+    rejectedItems: CorrectionsRejectionItem[],
   ) => void;
 }) => {
   const [decisions, setDecisions] = useState<DecisionMap>({});
   // 의미훼손 의심 플래그 — 거절된 항목의 index set
   const [meaningDamageSet, setMeaningDamageSet] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
 
-  const decide = useCallback((idx: number, d: 'accepted' | 'rejected') => {
+  const decide = useCallback((idx: number, d: "accepted" | "rejected") => {
     setDecisions((prev) => ({ ...prev, [idx]: d }));
   }, []);
 
@@ -1798,17 +1868,17 @@ const PanelCorrectionReviewBody = ({
     setDecisions((prev) => {
       const next = { ...prev };
       changes.forEach((c) => {
-        if (!next[c.index]) next[c.index] = 'accepted';
+        if (!next[c.index]) next[c.index] = "accepted";
       });
       return next;
     });
   }, [changes]);
 
   const acceptedCount = Object.values(decisions).filter(
-    (d) => d === 'accepted'
+    (d) => d === "accepted",
   ).length;
   const rejectedCount = Object.values(decisions).filter(
-    (d) => d === 'rejected'
+    (d) => d === "rejected",
   ).length;
   const pendingCount = changes.length - acceptedCount - rejectedCount;
   const reviewedCount = acceptedCount + rejectedCount;
@@ -1818,17 +1888,17 @@ const PanelCorrectionReviewBody = ({
   const handleComplete = useCallback(() => {
     // 수락 항목만 start 기준 역순으로 적용 (오프셋 밀림 방지)
     const accepted = changes
-      .filter((c) => decisions[c.index] !== 'rejected')
+      .filter((c) => decisions[c.index] !== "rejected")
       .sort((a, b) => b.start - a.start);
 
-    devLog('[ToneFit DEBUG] originalEmail:', JSON.stringify(originalEmail));
+    devLog("[ToneFit DEBUG] originalEmail:", JSON.stringify(originalEmail));
     devLog(
-      '[ToneFit DEBUG] originalEmail 줄바꿈 수:',
-      (originalEmail.match(/\n/g) ?? []).length
+      "[ToneFit DEBUG] originalEmail 줄바꿈 수:",
+      (originalEmail.match(/\n/g) ?? []).length,
     );
     accepted.forEach((c) => {
       devLog(
-        `[ToneFit DEBUG] 수락 항목 [${c.index}] start=${c.start} end=${c.end}`
+        `[ToneFit DEBUG] 수락 항목 [${c.index}] start=${c.start} end=${c.end}`,
       );
       devLog(`  original: ${JSON.stringify(c.original)}`);
       devLog(`  corrected: ${JSON.stringify(c.corrected)}`);
@@ -1836,18 +1906,18 @@ const PanelCorrectionReviewBody = ({
 
     let result = originalEmail;
     for (const c of accepted) {
-      const corrected = c.corrected.replace(/\\n/g, '\n');
+      const corrected = c.corrected.replace(/\\n/g, "\n");
       result = result.slice(0, c.start) + corrected + result.slice(c.end);
     }
 
-    devLog('[ToneFit DEBUG] finalContent:', JSON.stringify(result));
+    devLog("[ToneFit DEBUG] finalContent:", JSON.stringify(result));
     devLog(
-      '[ToneFit DEBUG] finalContent 줄바꿈 수:',
-      (result.match(/\n/g) ?? []).length
+      "[ToneFit DEBUG] finalContent 줄바꿈 수:",
+      (result.match(/\n/g) ?? []).length,
     );
 
     const rejectedItems: CorrectionsRejectionItem[] = changes
-      .filter((c) => decisions[c.index] === 'rejected')
+      .filter((c) => decisions[c.index] === "rejected")
       .map((c) => ({
         label: c.label,
         original_phrase: c.original,
@@ -1860,7 +1930,7 @@ const PanelCorrectionReviewBody = ({
     void purpose;
 
     const acceptedChanges = changes.filter(
-      (c) => decisions[c.index] !== 'rejected'
+      (c) => decisions[c.index] !== "rejected",
     );
     onComplete(result, acceptedChanges, rejectedItems);
   }, [
@@ -1984,10 +2054,10 @@ const PanelBody = ({
   showCorrectionHint: boolean;
   onDismissCorrectionHint: () => void;
   onModeChange: (m: PanelMode) => void;
-  mode?: 'demo' | 'extension';
+  mode?: "demo" | "extension";
 }) => {
   const labelClass =
-    'text-base font-semibold leading-6 tracking-tight text-text-primary';
+    "text-base font-semibold leading-6 tracking-tight text-text-primary";
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [thumbTop, setThumbTop] = useState(0);
@@ -2014,18 +2084,18 @@ const PanelBody = ({
   return (
     <div className="flex-1 flex flex-col px-2 py-2 gap-6 justify-between h-full overflow-y-auto">
       <div className="panel__top flex flex-col gap-4">
-        {mode !== 'demo' && (
+        {mode !== "demo" && (
           <div className="panel__header flex flex-col gap-4">
             {/* 모드 스위치 */}
             <ModeSwitch mode={panelMode} onChange={onModeChange} />
 
             {/* 교정 첫 안내 배너 */}
-            {panelMode === 'correct' && showCorrectionHint && (
+            {panelMode === "correct" && showCorrectionHint && (
               <CorrectionHint onDismiss={onDismissCorrectionHint} />
             )}
 
             {/* 툴팁 슬롯 (생성 모드 전용) */}
-            {panelMode === 'generate' && tooltipSlot}
+            {panelMode === "generate" && tooltipSlot}
           </div>
         )}
 
@@ -2033,11 +2103,12 @@ const PanelBody = ({
           {/* 수신자 유형 */}
           <div className="flex flex-col gap-4">
             <p className={labelClass}>수신자 유형 선택</p>
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-2 gap-1">
               {RECEIVER_OPTIONS.map(({ value, label }) => (
                 <ChipV2
                   key={value}
                   selected={receiver === value}
+                  size="md"
                   onClick={() => {
                     setReceiver(receiver === value ? null : value);
                     onChipSelect?.();
@@ -2053,11 +2124,12 @@ const PanelBody = ({
           {/* 목적 */}
           <div className="flex flex-col gap-4 py-4">
             <p className={labelClass}>목적 선택</p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {PURPOSE_OPTIONS.map(({ value, label }) => (
                 <ChipV2
                   key={value}
                   selected={purpose === value}
+                  size="md"
                   onClick={() => {
                     setPurpose(purpose === value ? null : value);
                     onChipSelect?.();
@@ -2071,7 +2143,7 @@ const PanelBody = ({
           </div>
 
           {/* 이메일 내용 입력 — 생성 모드만 */}
-          {panelMode === 'generate' && (
+          {panelMode === "generate" && (
             <div className="flex flex-col gap-4 flex-1">
               <div className="flex gap-3.25 items-center">
                 <p className={labelClass}>메일 상황 입력</p>
@@ -2083,10 +2155,10 @@ const PanelBody = ({
                 <div
                   className={`relative bg-background-surface border rounded-xl p-2.5 flex-1 min-h-[218px] ${
                     emailText.length > EMAIL_MAX
-                      ? 'border-border-danger'
+                      ? "border-border-danger"
                       : emailText.length >= 10
-                        ? 'border-border-brand'
-                        : 'border-border-default'
+                        ? "border-border-brand"
+                        : "border-border-default"
                   }`}
                 >
                   <textarea
@@ -2117,10 +2189,10 @@ const PanelBody = ({
                   <span
                     className={`text-xs font-normal leading-4.5 tracking-tight ${
                       emailText.length > EMAIL_MAX
-                        ? 'text-text-danger'
+                        ? "text-text-danger"
                         : emailText.length >= 10
-                          ? 'text-text-brand'
-                          : 'text-text-placeholder'
+                          ? "text-text-brand"
+                          : "text-text-placeholder"
                     }`}
                   >
                     {emailText.length} / {EMAIL_MAX}자
@@ -2135,9 +2207,9 @@ const PanelBody = ({
       {/* CTA 버튼 */}
       <div className="shrink-0 flex flex-col gap-2 p-2">
         <ButtonLongV2 disabled={!canGenerate} onClick={onGenerate}>
-          {panelMode === 'correct' ? '교정 시작하기' : '초안 생성하기'}
+          {panelMode === "correct" ? "교정 시작하기" : "초안 생성하기"}
         </ButtonLongV2>
-        {panelMode === 'generate' && (
+        {panelMode === "generate" && (
           <p className="flex gap-1 items-center justify-center text-text-placeholder text-xs leading-4.5 tracking-tight">
             <span>
               <svg
@@ -2218,12 +2290,12 @@ const ToneFitPanel = ({
   onReset,
   onExhausted,
   showHeader = true,
-  mode = 'demo',
+  mode = "demo",
   tooltipSlot,
   onChipSelect,
   onCancel,
   onError,
-  errorVariant = 'generic',
+  errorVariant = "generic",
   onGoToLogin,
   onCorrectionsRejected,
   devForceView,
@@ -2244,15 +2316,15 @@ const ToneFitPanel = ({
   onReplySuccess,
   onNoCorrectionConfirm,
 }: ToneFitPanelProps) => {
-  const CORRECTION_HINT_KEY = 'tonefit_correction_hint_dismissed';
+  const CORRECTION_HINT_KEY = "tonefit_correction_hint_dismissed";
   const [panelMode, setPanelMode] = useState<PanelMode>(
-    initialPanelMode ?? 'generate'
+    initialPanelMode ?? "generate",
   );
-  const [view, setView] = useState<PanelView>('input');
+  const [view, setView] = useState<PanelView>("input");
 
   // 툴바 버튼 재클릭 시 input 뷰에서만 모드 갱신
   useEffect(() => {
-    if (requestedPanelMode && view === 'input') {
+    if (requestedPanelMode && view === "input") {
       startTransition(() => setPanelMode(requestedPanelMode));
     }
   }, [requestedPanelMode, view]);
@@ -2262,10 +2334,10 @@ const ToneFitPanel = ({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [receiver, setReceiver] = useState<ReceiverType | null>(null);
   const [purpose, setPurpose] = useState<PurposeType | null>(null);
-  const [emailText, setEmailText] = useState('');
+  const [emailText, setEmailText] = useState("");
   const [correctionSession, setCorrectionSession] = useState<Extract<
     GenerateResult,
-    { type: 'correction' }
+    { type: "correction" }
   > | null>(null);
   const [correctionSummary, setCorrectionSummary] = useState<{
     acceptedChanges: CorrectionChange[];
@@ -2274,19 +2346,20 @@ const ToneFitPanel = ({
   } | null>(null);
   const cancelledRef = useRef(false);
   const [replyAnalysis, setReplyAnalysis] = useState<
-    import('@/types').ReplyAnalysisResponse | null
+    import("@/types").ReplyAnalysisResponse | null
   >(null);
   const [replySummaries, setReplySummaries] = useState<string[]>([]);
   const replyStartedRef = useRef(false);
   const [internalErrorVariant, setInternalErrorVariant] =
     useState<ErrorVariant | null>(null);
+  const [draftText, setDraftText] = useState<string>("");
 
   /** 모드 전환 — 교정 모드 최초 진입 시에만 안내 배너 표시 */
 
   const handleModeChange = useCallback((m: PanelMode) => {
     setPanelMode(m);
-    if (m === 'correct') {
-      const dismissed = localStorage.getItem(CORRECTION_HINT_KEY) === 'true';
+    if (m === "correct") {
+      const dismissed = localStorage.getItem(CORRECTION_HINT_KEY) === "true";
       if (!dismissed) setShowCorrectionHint(true);
     }
   }, []);
@@ -2297,7 +2370,7 @@ const ToneFitPanel = ({
    * 생성 모드: 수신자 + 목적 + 이메일 내용 필요
    */
   const canGenerateForm =
-    panelMode === 'correct'
+    panelMode === "correct"
       ? !!receiver && !!purpose
       : !!receiver &&
         !!purpose &&
@@ -2326,7 +2399,7 @@ const ToneFitPanel = ({
     cancelledRef.current = false;
 
     // 교정 모드: loading 전에 사전 검증 (본문 길이 등)
-    if (panelMode === 'correct' && onPreCheck) {
+    if (panelMode === "correct" && onPreCheck) {
       try {
         await onPreCheck();
       } catch (err) {
@@ -2337,40 +2410,41 @@ const ToneFitPanel = ({
           _fetchError?: boolean;
         };
         if (e._noCompose) {
-          showToast('Gmail 작성창을 열어둔 뒤 다시 시도해 주세요.');
+          showToast("Gmail 작성창을 열어둔 뒤 다시 시도해 주세요.");
         } else if (e._empty) {
-          showToast('Gmail 작성창에 메일 본문을 작성해 주세요.');
+          showToast("Gmail 작성창에 메일 본문을 작성해 주세요.");
         } else if (e._tooShort) {
-          showToast('본문을 40자 이상 작성하면 교정을 시작할 수 있어요.');
+          showToast("본문을 40자 이상 작성하면 교정을 시작할 수 있어요.");
         } else if (e._fetchError) {
-          showToast('메일 본문을 읽지 못했어요. 잠시 후 다시 시도해 주세요.');
+          showToast("메일 본문을 읽지 못했어요. 잠시 후 다시 시도해 주세요.");
         }
         return;
       }
     }
 
-    setView('loading');
+    setView("loading");
     try {
       const result = await onRequest({
         receiver,
         purpose,
         emailText,
-        correctionMode: panelMode === 'correct',
+        correctionMode: panelMode === "correct",
       });
       if (cancelledRef.current) return;
-      if (result.type === 'correction') {
+      if (result.type === "correction") {
         setCorrectionSession(result);
         setView(
-          result.changes.length === 0 ? 'no-correction' : 'correction-review'
+          result.changes.length === 0 ? "no-correction" : "correction-review",
         );
       } else {
-        setView('success');
+        setDraftText(result.content);
+        setView("success");
         onSuccess(result.subject, result.content);
       }
     } catch (err) {
       if (cancelledRef.current) return;
       onError?.(err);
-      setView('error');
+      setView("error");
     }
   }, [
     canGenerateForm,
@@ -2391,24 +2465,24 @@ const ToneFitPanel = ({
   /** 로딩 중 취소 → 입력값 유지하고 input으로 복귀 */
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
-    setView('input');
+    setView("input");
     onCancel?.();
   }, [onCancel, setView]);
 
   const handleReplyWrite = useCallback(
-    async (req: import('@/types').ReplyRequest) => {
+    async (req: import("@/types").ReplyRequest) => {
       if (!onReplyWriteRequest) return;
-      setView('reply-loading-write');
+      setView("reply-loading-write");
       try {
         const result = await onReplyWriteRequest(req);
         onReplySuccess?.(result.generated_subject, result.generated_email);
-        setView('reply-success');
+        setView("reply-success");
       } catch (err) {
         onError?.(err);
-        setView('error');
+        setView("error");
       }
     },
-    [onReplyWriteRequest, onReplySuccess, onError, setView]
+    [onReplyWriteRequest, onReplySuccess, onError, setView],
   );
 
   /** 교정 리뷰 완료 — 최종 내용 삽입 + 거절 항목 전송 */
@@ -2417,67 +2491,68 @@ const ToneFitPanel = ({
     (
       finalContent: string,
       acceptedChanges: CorrectionChange[],
-      rejectedItems: CorrectionsRejectionItem[]
+      rejectedItems: CorrectionsRejectionItem[],
     ) => {
-      onSuccess('', finalContent);
+      onSuccess("", finalContent);
       if (rejectedItems.length > 0 && correctionSession) {
         onCorrectionsRejected?.(
           rejectedItems,
           correctionSession.receiver,
-          correctionSession.purpose
+          correctionSession.purpose,
         );
       }
       const totalCount = correctionSession?.changes.length ?? 0;
       const rejectedChanges = (correctionSession?.changes ?? []).filter((c) =>
-        rejectedItems.some((r) => r.original_phrase === c.original)
+        rejectedItems.some((r) => r.original_phrase === c.original),
       );
       setCorrectionSummary({ acceptedChanges, rejectedChanges, totalCount });
       setCorrectionSession(null);
-      setView('success');
+      setView("success");
     },
-    [onSuccess, onCorrectionsRejected, correctionSession, setView]
+    [onSuccess, onCorrectionsRejected, correctionSession, setView],
   );
 
   /** 성공 화면 → 입력 초기화 */
   const handleReset = () => {
     setCorrectionSession(null);
     setCorrectionSummary(null);
-    setView('input');
+    setDraftText("");
+    setView("input");
     setReceiver(null);
     setPurpose(null);
-    setEmailText('');
+    setEmailText("");
     onReset();
   };
 
   /** 실패 화면 → 입력 유지하고 돌아가기 (reply 모드는 분석 재시작) */
   const handleRetry = () => {
-    if (panelMode === 'reply' && replyMails && onReplyAnalysisRequest) {
-      setView('reply-loading-analysis');
+    if (panelMode === "reply" && replyMails && onReplyAnalysisRequest) {
+      setView("reply-loading-analysis");
       onReplyAnalysisRequest(replyMails, replyTo, replyCc)
         .then(({ analysis, summaries }) => {
           setReplyAnalysis(analysis);
           setReplySummaries(summaries);
-          setView('reply-input');
+          setView("reply-input");
         })
-        .catch(() => setView('error'));
+        .catch(() => setView("error"));
     } else {
-      setView('input');
+      setView("input");
     }
   };
 
   const REPLY_ERROR_CODE_MAP: Record<string, ReplyErrorVariant> = {
-    REPLY_EMPTY: 'reply_empty',
-    REPLY_NO_QUOTE: 'reply_no_quote',
-    REPLY_TOO_LONG: 'reply_too_long',
-    REPLY_NON_KOREAN: 'reply_non_korean',
-    REPLY_API_ERROR: 'reply_api_error',
-    REPLY_EXTRACT_ERROR: 'reply_extract_error',
+    REPLY_EMPTY: "reply_empty",
+    REPLY_NO_QUOTE: "reply_no_quote",
+    REPLY_TOO_LONG: "reply_too_long",
+    REPLY_NON_KOREAN: "reply_non_korean",
+    REPLY_API_ERROR: "reply_api_error",
+    REPLY_EXTRACT_ERROR: "reply_extract_error",
   };
 
   // reply 모드: 패널 열릴 때 자동으로 분석 시작 / 패널 열린 상태에서 재요청 시 재시작
   useEffect(() => {
     const isInitialReply =
-      initialPanelMode === 'reply' && !replyStartedRef.current;
+      initialPanelMode === "reply" && !replyStartedRef.current;
     const isRetrigger = replyTriggerKey !== undefined && replyTriggerKey > 0;
 
     if (!isInitialReply && !isRetrigger) return;
@@ -2486,11 +2561,11 @@ const ToneFitPanel = ({
     if (replyError) {
       replyStartedRef.current = true;
       const variant: ErrorVariant =
-        REPLY_ERROR_CODE_MAP[replyError] ?? 'generic';
+        REPLY_ERROR_CODE_MAP[replyError] ?? "generic";
       startTransition(() => {
-        setPanelMode('reply');
+        setPanelMode("reply");
         setInternalErrorVariant(variant);
-        setView('error');
+        setView("error");
       });
       return;
     }
@@ -2498,15 +2573,15 @@ const ToneFitPanel = ({
     if (replyMails && onReplyAnalysisRequest) {
       replyStartedRef.current = true;
       startTransition(() => {
-        setPanelMode('reply');
-        setView('reply-loading-analysis');
+        setPanelMode("reply");
+        setView("reply-loading-analysis");
       });
       onReplyAnalysisRequest(replyMails, replyTo, replyCc)
         .then(({ analysis, summaries }) => {
           if (!analysis) return; // 중단하기로 abort된 경우
           setReplyAnalysis(analysis);
           setReplySummaries(summaries);
-          setView('reply-input');
+          setView("reply-input");
         })
         .catch((err: unknown) => {
           const typedErr = err as {
@@ -2514,12 +2589,12 @@ const ToneFitPanel = ({
             _replyApiError?: boolean;
           };
           if (typedErr._termsRequired) {
-            setView('reply-consent');
+            setView("reply-consent");
           } else if (typedErr._replyApiError) {
-            setInternalErrorVariant('reply_api_error');
-            setView('error');
+            setInternalErrorVariant("reply_api_error");
+            setView("error");
           } else {
-            setView('error');
+            setView("error");
           }
         });
     }
@@ -2538,23 +2613,23 @@ const ToneFitPanel = ({
   useEffect(() => {
     const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter') return;
+      if (e.key !== "Enter") return;
       if (isMac ? e.metaKey : e.altKey) {
         e.preventDefault();
         handleGenerate();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleGenerate]);
 
   const activeView = devForceView ?? view;
   const activePanelMode = devPanelModeProp ?? panelMode;
 
   const receiverLabel =
-    RECEIVER_OPTIONS.find((o) => o.value === receiver)?.label ?? '상사';
+    RECEIVER_OPTIONS.find((o) => o.value === receiver)?.label ?? "상사";
   const purposeLabel =
-    PURPOSE_OPTIONS.find((o) => o.value === purpose)?.label ?? '보고';
+    PURPOSE_OPTIONS.find((o) => o.value === purpose)?.label ?? "보고";
 
   return (
     <>
@@ -2562,20 +2637,20 @@ const ToneFitPanel = ({
       {showHeader && <PanelHeader remainingCount={remainingCount} />}
 
       {/* 본문 */}
-      {activeView === 'loading' && (
+      {activeView === "loading" && (
         <PanelLoadingBody
           receiverLabel={receiverLabel}
           purposeLabel={purposeLabel}
           onCancel={onCancel ? handleCancel : undefined}
           message={
-            activePanelMode === 'correct'
-              ? '문장의 흐름을 살펴보고 있어요.'
+            activePanelMode === "correct"
+              ? "문장의 흐름을 살펴보고 있어요."
               : undefined
           }
         />
       )}
-      {activeView === 'success' &&
-        (activePanelMode === 'correct' ? (
+      {activeView === "success" &&
+        (activePanelMode === "correct" ? (
           <PanelCorrectionSuccessBody
             acceptedChanges={
               correctionSummary?.acceptedChanges ?? DEV_MOCK_CHANGES.slice(0, 2)
@@ -2592,10 +2667,12 @@ const ToneFitPanel = ({
           <PanelSuccessBody
             mode={mode}
             panelMode={activePanelMode}
+            draftText={draftText}
             onReset={handleReset}
+            showToast={showToast}
           />
         ))}
-      {activeView === 'error' && (
+      {activeView === "error" && (
         <PanelErrorBody
           key={`${internalErrorVariant ?? errorVariant}-${activePanelMode}`}
           variant={internalErrorVariant ?? errorVariant}
@@ -2604,43 +2681,43 @@ const ToneFitPanel = ({
           onGoToLogin={onGoToLogin}
         />
       )}
-      {activeView === 'no-correction' && (
+      {activeView === "no-correction" && (
         <PanelNoCorrectionBody onConfirm={onNoCorrectionConfirm} />
       )}
-      {activeView === 'correction-review' && (
+      {activeView === "correction-review" && (
         <PanelCorrectionReviewBody
           changes={correctionSession?.changes ?? DEV_MOCK_CHANGES}
           originalEmail={correctionSession?.originalEmail ?? DEV_MOCK_ORIGINAL}
-          receiver={correctionSession?.receiver ?? 'DIRECT_SUPERVISOR'}
-          purpose={correctionSession?.purpose ?? 'REPORT'}
+          receiver={correctionSession?.receiver ?? "DIRECT_SUPERVISOR"}
+          purpose={correctionSession?.purpose ?? "REPORT"}
           onComplete={handleCorrectionComplete}
         />
       )}
-      {activeView === 'reply-consent' && (
+      {activeView === "reply-consent" && (
         <PanelReplyConsentBody
           onAgree={async () => {
             if (onAgreeMailRead) await onAgreeMailRead();
             if (replyMails && onReplyAnalysisRequest) {
-              setView('reply-loading-analysis');
+              setView("reply-loading-analysis");
               onReplyAnalysisRequest(replyMails, replyTo, replyCc)
                 .then(({ analysis, summaries }) => {
                   setReplyAnalysis(analysis);
                   setReplySummaries(summaries);
-                  setView('reply-input');
+                  setView("reply-input");
                 })
-                .catch(() => setView('error'));
+                .catch(() => setView("error"));
             }
           }}
           onCancel={() => {
-            setPanelMode('generate');
-            setView('input');
+            setPanelMode("generate");
+            setView("input");
           }}
         />
       )}
-      {activeView === 'reply-loading-analysis' && (
+      {activeView === "reply-loading-analysis" && (
         <PanelReplyAnalysisLoadingBody onCancel={onReplyAnalysisCancel} />
       )}
-      {activeView === 'reply-input' && (
+      {activeView === "reply-input" && (
         <PanelReplyInputBody
           analysis={replyAnalysis ?? DEV_MOCK_REPLY_ANALYSIS}
           originalSubject={replySubject}
@@ -2652,34 +2729,34 @@ const ToneFitPanel = ({
           onSubmit={handleReplyWrite}
         />
       )}
-      {activeView === 'reply-loading-write' && (
+      {activeView === "reply-loading-write" && (
         <PanelReplyWriteLoadingBody
           onCancel={
             onCancel
               ? () => {
                   onCancel();
-                  setView('reply-input');
+                  setView("reply-input");
                 }
               : undefined
           }
         />
       )}
-      {activeView === 'reply-success' && (
+      {activeView === "reply-success" && (
         <PanelReplySuccessBody
           onCorrect={() => {
-            setPanelMode('correct');
-            setView('input');
+            setPanelMode("correct");
+            setView("input");
           }}
           onReset={() => {
             replyStartedRef.current = false;
             setReplyAnalysis(null);
             setReplySummaries([]);
-            setPanelMode('generate');
-            setView('input');
+            setPanelMode("generate");
+            setView("input");
           }}
         />
       )}
-      {activeView === 'input' && (
+      {activeView === "input" && (
         <PanelBody
           panelMode={activePanelMode}
           receiver={receiver}
@@ -2695,7 +2772,7 @@ const ToneFitPanel = ({
           showCorrectionHint={showCorrectionHint}
           onDismissCorrectionHint={() => {
             setShowCorrectionHint(false);
-            localStorage.setItem(CORRECTION_HINT_KEY, 'true');
+            localStorage.setItem(CORRECTION_HINT_KEY, "true");
           }}
           onModeChange={handleModeChange}
           mode={mode}
@@ -2706,34 +2783,11 @@ const ToneFitPanel = ({
       {toastMessage && (
         <div
           className="w-[calc(100%-32px)] absolute bottom-[78px] left-1/2 -translate-x-1/2 bg-background-inverse flex items-center gap-2 px-3 py-2.5 rounded-lg pointer-events-none z-50"
-          style={{ boxShadow: '0px 8px 24px -2px rgba(124,77,255,0.16)' }}
+          style={{ boxShadow: "0px 8px 24px -2px rgba(124,77,255,0.16)" }}
         >
-          {/* X-circle 아이콘 */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-          >
-            <path
-              d="M10.0001 18.3332C14.6025 18.3332 18.3334 14.6022 18.3334 9.99984C18.3334 5.39746 14.6025 1.6665 10.0001 1.6665C5.39771 1.6665 1.66675 5.39746 1.66675 9.99984C1.66675 14.6022 5.39771 18.3332 10.0001 18.3332Z"
-              fill="#7C4DFF"
-            />
-            <path
-              d="M12.5 7.5L7.5 12.5"
-              stroke="black"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M7.5 7.5L12.5 12.5"
-              stroke="black"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M9.99935 18.3333C14.6018 18.3333 18.3327 14.6025 18.3327 9.99996C18.3327 5.39746 14.6018 1.66663 9.99935 1.66663C5.39685 1.66663 1.66602 5.39746 1.66602 9.99996C1.66602 14.6025 5.39685 18.3333 9.99935 18.3333Z" fill="#7C4DFF" />
+            <path d="M7.5 10L9.16667 11.6667L12.5 8.33337" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <p className="text-text-inverse text-xs font-semibold leading-4 tracking-tight">
             {toastMessage}

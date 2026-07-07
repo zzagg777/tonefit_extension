@@ -59,6 +59,7 @@
   --color-background-selected: var(--color-background-selected);
   --color-background-success-subtle: var(--color-background-success-subtle);
   --color-background-warning-subtle: var(--color-background-warning-subtle);
+  --color-background-danger: var(--color-background-danger);
   --color-background-danger-subtle: var(--color-background-danger-subtle);
   --color-background-info-subtle: var(--color-background-info-subtle);
   --color-background-load: var(--color-background-load);
