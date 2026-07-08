@@ -77,10 +77,10 @@ const ReplyInputBody = ({
                 viewBox="0 0 20 20"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className={`transition-transform duration-200 ${summaryOpen ? "rotate-90" : ""}`}
+                className={`transition-transform duration-200 ${summaryOpen ? "rotate-180" : ""}`}
               >
                 <path
-                  d="M13.8297 10.8192C14.3984 10.4211 14.3984 9.57887 13.8297 9.18077L6.57346 4.10142C5.91069 3.63748 5 4.11163 5 4.92066L5 15.0793C5 15.8884 5.91069 16.3625 6.57346 15.8986L13.8297 10.8192Z"
+                  d="M10.8192 6.17033C10.4211 5.60162 9.57887 5.60161 9.18077 6.17033L4.10142 13.4265C3.63748 14.0893 4.11163 15 4.92066 15L15.0793 15C15.8884 15 16.3625 14.0893 15.8986 13.4265L10.8192 6.17033Z"
                   fill="#D2D6E1"
                 />
               </svg>

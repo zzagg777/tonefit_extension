@@ -427,7 +427,9 @@ const Panel = () => {
                 } catch (err) {
                   const status = (err as { response?: { status?: number } })
                     ?.response?.status;
-                  if (status === 401) {
+                  const sessionExpired = (err as { _sessionExpired?: boolean })
+                    ?._sessionExpired;
+                  if (status === 401 || sessionExpired) {
                     await clearToken();
                     setIsLoading(false);
                     return;
