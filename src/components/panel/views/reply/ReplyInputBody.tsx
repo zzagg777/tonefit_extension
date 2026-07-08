@@ -1,9 +1,49 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ChipV2, ButtonLongV2 } from "@/components/ui";
 import type { ReceiverType } from "@/types";
 import { RECEIVER_OPTIONS } from "../../constants";
 
-/** 회신 질문 답변 입력 폼 (input) */
+const LINE_HEIGHT_PX = 22; // text-sm leading-5.5 ≈ 22px
+const MAX_LINES = 10;
+
+const AutoResizeTextarea = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}) => {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const resize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const maxHeight = LINE_HEIGHT_PX * MAX_LINES + 24; // 24 = py-3 * 2
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
+
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+        resize();
+      }}
+      onInput={resize}
+      placeholder={placeholder}
+      style={{ overflowY: "hidden" }}
+      className="w-full pr-2 text-sm font-normal leading-5.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus resize-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-background-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+    />
+  );
+};
+
+/** 회신 질문 답변 입력 폼 */
 const ReplyInputBody = ({
   analysis,
   summaries,
@@ -52,7 +92,7 @@ const ReplyInputBody = ({
       <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-6">
         {/* 헤더 */}
         <div className="px-2.5">
-          <h2 className="text-2xl font-bold leading-8 tracking-tight text-text-primary">
+          <h2 className="text-xl font-bold leading-8 tracking-tight text-text-primary">
             받은 메일을 읽고,
             <br />
             답장에 필요한 질문을 추렸어요
@@ -166,18 +206,15 @@ const ReplyInputBody = ({
                           {q.question}
                         </p>
                       </div>
-                      <input
-                        type="text"
-                        value={answers[q.id] ?? ""}
-                        onChange={(e) =>
-                          setAnswers((prev) => ({
-                            ...prev,
-                            [q.id]: e.target.value,
-                          }))
-                        }
-                        placeholder="답변을 작성해주세요."
-                        className="w-full bg-background-subtle border border-border-default rounded-lg px-4 py-3 text-sm font-normal leading-5.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus"
-                      />
+                      <div className="w-full bg-background-subtle border border-border-default rounded-lg pl-4 pr-2 py-3">
+                        <AutoResizeTextarea
+                          value={answers[q.id] ?? ""}
+                          onChange={(val) =>
+                            setAnswers((prev) => ({ ...prev, [q.id]: val }))
+                          }
+                          placeholder="답변을 작성해주세요."
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -194,13 +231,15 @@ const ReplyInputBody = ({
                 회신에 필요한 정보
               </p>
             </div>
-            <textarea
-              value={freeInput}
-              onChange={(e) => setFreeInput(e.target.value)}
-              placeholder="전하려는 내용을 입력해주세요"
-              rows={4}
-              className="w-full bg-background-surface border border-border-default rounded-2xl px-4 py-3 text-sm font-normal leading-5.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus resize-none"
-            />
+            <div className="w-full bg-background-surface border border-border-default rounded-2xl pl-4 pr-2 py-3">
+              <textarea
+                value={freeInput}
+                onChange={(e) => setFreeInput(e.target.value)}
+                placeholder="전하려는 내용을 입력해주세요"
+                rows={4}
+                className="w-full pr-2 text-sm font-normal leading-5.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus resize-none"
+              />
+            </div>
           </div>
         )}
 
@@ -211,13 +250,15 @@ const ReplyInputBody = ({
               추가로 전할 말 <span>(선택)</span>
             </p>
           </div>
-          <textarea
-            value={extraMessage}
-            onChange={(e) => setExtraMessage(e.target.value)}
-            placeholder="내용을 입력해주세요"
-            rows={4}
-            className="w-full bg-background-surface border border-border-default rounded-2xl px-4 py-3 text-xs font-normal leading-4.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus resize-none"
-          />
+          <div className="w-full bg-background-surface border border-border-default rounded-2xl pl-4 pr-2 py-3">
+            <textarea
+              value={extraMessage}
+              onChange={(e) => setExtraMessage(e.target.value)}
+              placeholder="내용을 입력해주세요"
+              rows={4}
+              className="w-full pr-2 text-xs font-normal leading-4.5 tracking-tight text-text-primary placeholder:text-text-placeholder outline-none focus:border-border-focus resize-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-background-muted [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+            />
+          </div>
         </div>
       </div>
 
