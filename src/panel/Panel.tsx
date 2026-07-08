@@ -351,10 +351,15 @@ const Panel = () => {
   useEffect(() => {
     const checkGmail = (tabId?: number) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const currentTabId = tabs[0]?.id;
         const url = tabs[0]?.url ?? '';
         const gmail = url.startsWith('https://mail.google.com');
         setIsGmailTab(gmail);
-        if (gmail && tabId !== undefined) activeTabIdRef.current = tabId;
+        // currentWindow의 활성 탭과 이벤트 탭이 일치할 때만 업데이트
+        // (OAuth 팝업 탭 ID로 오염되는 것 방지)
+        if (gmail && tabId !== undefined && tabId === currentTabId) {
+          activeTabIdRef.current = tabId;
+        }
       });
     };
 
@@ -548,6 +553,7 @@ const Panel = () => {
             if (showTip) setShowTooltip(true);
             return;
           }
+          activeTabIdRef.current = tabId;
           chrome.tabs.sendMessage(
             tabId,
             { type: 'GET_EMAIL_CONTENT' },
