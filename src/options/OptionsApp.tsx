@@ -16,6 +16,8 @@ const OptionsApp = () => {
   const [userProfile, setUserProfile] = useState<
     (UserProfile & { picture?: string }) | null
   >(null);
+  const [aiConsent, setAiConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -46,9 +48,16 @@ const OptionsApp = () => {
             } as UserProfile & { picture?: string });
           }
 
+          if (cache) {
+            setAiConsent(cache.aiConsent ?? false);
+            setMarketingConsent(cache.marketingConsent ?? false);
+          }
+
           getMyProfile()
             .then((profile) => {
               setUserProfile({ ...profile, picture: cache?.picture });
+              setAiConsent(profile.ai_learning_agreed);
+              setMarketingConsent(profile.marketing_agreed);
               chrome.storage.local.set({
                 tonefit_popup_cache: {
                   name: profile.nickname,
@@ -171,6 +180,10 @@ const OptionsApp = () => {
         {page === "settings" && (
           <Settings
             userProfile={userProfile}
+            aiConsent={aiConsent}
+            marketingConsent={marketingConsent}
+            onAiConsentChange={setAiConsent}
+            onMarketingConsentChange={setMarketingConsent}
             onNavigateTerms={() => setPage("terms")}
             onNavigatePrivacy={() => setPage("privacy")}
           />

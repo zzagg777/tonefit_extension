@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { toggleTerms } from "../apiClient";
 import type { UserProfile } from "@/types";
 import ConfirmDialog from "./ConfirmDialog";
@@ -34,6 +34,10 @@ export const Toggle = ({
 // ── 설정 페이지 콘텐츠 ─────────────────────────────────────────────
 interface SettingsProps {
   userProfile: UserProfile | null;
+  aiConsent: boolean;
+  marketingConsent: boolean;
+  onAiConsentChange: (value: boolean) => void;
+  onMarketingConsentChange: (value: boolean) => void;
   onNavigateTerms: () => void;
   onNavigatePrivacy: () => void;
 }
@@ -41,24 +45,15 @@ interface SettingsProps {
 type DialogState = "none" | "ai_confirm";
 
 const Settings = ({
-  userProfile,
+  userProfile: _userProfile,
+  aiConsent,
+  marketingConsent,
+  onAiConsentChange,
+  onMarketingConsentChange,
   onNavigateTerms,
   onNavigatePrivacy,
 }: SettingsProps) => {
   const [dialog, setDialog] = useState<DialogState>("none");
-  const [aiConsent, setAiConsent] = useState(
-    userProfile?.ai_learning_agreed ?? false,
-  );
-  const [marketingConsent, setMarketingConsent] = useState(
-    userProfile?.marketing_agreed ?? false,
-  );
-
-  useEffect(() => {
-    if (userProfile) {
-      setAiConsent(userProfile.ai_learning_agreed);
-      setMarketingConsent(userProfile.marketing_agreed);
-    }
-  }, [userProfile]);
 
   const updateCache = useCallback(
     (patch: { aiConsent?: boolean; marketingConsent?: boolean }) => {
@@ -74,31 +69,31 @@ const Settings = ({
     if (aiConsent) {
       setDialog("ai_confirm");
     } else {
-      setAiConsent(true);
+      onAiConsentChange(true);
       updateCache({ aiConsent: true });
       toggleTerms("AI_LEARNING", true).catch((err) =>
         console.error("[ToneFit Options] AI 동의 ON 실패:", err),
       );
     }
-  }, [aiConsent, updateCache]);
+  }, [aiConsent, onAiConsentChange, updateCache]);
 
   const handleAiConsentOff = useCallback(() => {
-    setAiConsent(false);
+    onAiConsentChange(false);
     setDialog("none");
     updateCache({ aiConsent: false });
     toggleTerms("AI_LEARNING", false).catch((err) =>
       console.error("[ToneFit Options] AI 동의 OFF 실패:", err),
     );
-  }, [updateCache]);
+  }, [onAiConsentChange, updateCache]);
 
   const handleMarketingToggle = useCallback(() => {
     const next = !marketingConsent;
-    setMarketingConsent(next);
+    onMarketingConsentChange(next);
     updateCache({ marketingConsent: next });
     toggleTerms("MARKETING", next).catch((err) =>
       console.error("[ToneFit Options] 마케팅 동의 변경 실패:", err),
     );
-  }, [marketingConsent, updateCache]);
+  }, [marketingConsent, onMarketingConsentChange, updateCache]);
 
   return (
     <>
