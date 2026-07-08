@@ -259,6 +259,9 @@ const ToneFitPanel = ({
     } catch (err) {
       if (cancelledRef.current) return;
       onError?.(err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const sessionExpired = (err as { _sessionExpired?: boolean })?._sessionExpired;
+      if (status === 401 || sessionExpired) setInternalErrorVariant("session_expired");
       setView("error");
     }
   }, [
@@ -410,9 +413,14 @@ const ToneFitPanel = ({
           const typedErr = err as {
             _termsRequired?: boolean;
             _replyApiError?: boolean;
+            _sessionExpired?: boolean;
+            response?: { status?: number };
           };
           if (typedErr._termsRequired) {
             setView("reply-consent");
+          } else if (typedErr._sessionExpired || typedErr.response?.status === 401) {
+            setInternalErrorVariant("session_expired");
+            setView("error");
           } else if (typedErr._replyApiError) {
             setInternalErrorVariant("reply_api_error");
             setView("error");

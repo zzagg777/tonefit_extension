@@ -1013,14 +1013,24 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         );
       });
     }
-    sendResponse({
-      content: bodyEl ? getBodyTextWithoutSignature(bodyEl) : '',
-      subject: subjectEl?.value ?? '',
-      userLength: bodyEl
-        ? getUserTypedLength(bodyEl, composeContainer)
-        : 0,
-      composeOpen: isComposeOpen(),
-    });
+    try {
+      sendResponse({
+        content: bodyEl ? getBodyTextWithoutSignature(bodyEl) : '',
+        subject: subjectEl?.value ?? '',
+        userLength: bodyEl
+          ? getUserTypedLength(bodyEl, composeContainer)
+          : 0,
+        composeOpen: isComposeOpen(),
+      });
+    } catch (e) {
+      console.error('[ToneFit] GET_EMAIL_CONTENT 본문 파싱 오류:', e);
+      sendResponse({
+        content: '',
+        subject: subjectEl?.value ?? '',
+        userLength: 0,
+        composeOpen: isComposeOpen(),
+      });
+    }
     return true;
   }
 });

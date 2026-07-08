@@ -17,9 +17,6 @@ const devlog = (level: 'info' | 'error' | 'warn', tag: string, message: string) 
 };
 import {
   getStoredToken,
-  storeToken,
-  getGoogleIdToken,
-  signInWithGoogle,
 } from '@ext/auth';
 import type {
   GenerationRequest,
@@ -39,39 +36,6 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
-// silent re-auth 중복 호출 방지 — 진행 중인 Promise 재사용
-let silentReauthPromise: Promise<string> | null = null;
-
-/**
- * access token 만료 시 silent re-auth
- * interactive:false → 사용자 팝업 없이 Google 세션으로 조용히 갱신
- * 실패 시 throw → 호출자가 session_expired 처리
- */
-const silentReauth = (): Promise<string> => {
-  if (silentReauthPromise) return silentReauthPromise;
-
-  silentReauthPromise = (async () => {
-    try {
-      const idToken = await getGoogleIdToken(false); // interactive:false — UI 팝업 없이 시도
-      const result = await signInWithGoogle(idToken);
-      await storeToken(result.data.access_token);
-      devlog('info', 'Auth', 'silentReauth 성공 — 토큰 갱신 완료');
-      return result.data.access_token;
-    } catch (err) {
-      // Google 세션 만료 → 사용자가 직접 로그인해야 함
-      console.error('[ToneFit API] silentReauth 실패:', err);
-      devlog('error', 'Auth', `silentReauth 실패 — ${String(err)}`);
-      throw Object.assign(new Error('SESSION_EXPIRED'), {
-        _sessionExpired: true,
-      });
-    } finally {
-      silentReauthPromise = null;
-    }
-  })();
-
-  return silentReauthPromise;
-};
-
 /** auth 헤더 포함한 기본 헤더 반환 */
 const buildHeaders = async (): Promise<Record<string, string>> => {
   const token = await getStoredToken();
@@ -88,8 +52,7 @@ const buildHeaders = async (): Promise<Record<string, string>> => {
 };
 
 /**
- * 401 응답 시 silent re-auth 후 재시도하는 래퍼
- * fn: 헤더를 받아 실제 요청을 수행하는 함수
+ * 401 응답 시 session_expired throw — 호출자가 로그인 화면으로 이동
  */
 const withReauth = async <T>(
   fn: (headers: Record<string, string>) => Promise<T>
@@ -98,16 +61,13 @@ const withReauth = async <T>(
   try {
     return await fn(headers);
   } catch (err) {
-    const status = (err as { response?: { status?: number } })?.response
-      ?.status;
-    if (status !== 401) throw err;
-
-    // silent re-auth 후 재시도
-    console.error('[ToneFit API] 401 감지 → silentReauth 시도');
-    devlog('warn', 'Auth', '401 감지 → silentReauth 시도');
-    const newToken = await silentReauth();
-    const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-    return await fn(retryHeaders);
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 401) {
+      console.error('[ToneFit API] 401 감지 → 로그인 만료');
+      devlog('warn', 'Auth', '401 감지 → 로그인 만료');
+      throw Object.assign(new Error('SESSION_EXPIRED'), { _sessionExpired: true });
+    }
+    throw err;
   }
 };
 
