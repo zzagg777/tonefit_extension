@@ -130,9 +130,7 @@ const Popup = () => {
       if (!token) return;
 
       // 1단계: 캐시에서 즉시 렌더
-      chrome.storage.local.get(
-        ['tonefit_popup_cache', 'tonefit_user_profile'],
-        (result) => {
+      chrome.storage.local.get(['tonefit_popup_cache'], (result) => {
           const cache = result['tonefit_popup_cache'] as
             | {
                 name?: string;
@@ -141,9 +139,6 @@ const Popup = () => {
                 aiConsent?: boolean;
                 marketingConsent?: boolean;
               }
-            | undefined;
-          const profileStorage = result['tonefit_user_profile'] as
-            | { picture?: string }
             | undefined;
 
           if (cache) {
@@ -159,11 +154,10 @@ const Popup = () => {
           // 2단계: 백그라운드에서 API 갱신
           getMyProfile()
             .then((profile) => {
-              const picture = profileStorage?.picture ?? cache?.picture;
               const next = {
                 name: profile.nickname ?? '',
                 email: profile.email ?? '',
-                picture,
+                picture: cache?.picture,
                 aiConsent: profile.ai_learning_agreed ?? false,
                 marketingConsent: profile.marketing_agreed ?? false,
               };
@@ -180,10 +174,8 @@ const Popup = () => {
               const status = (err as { response?: { status?: number } })
                 ?.response?.status;
               if (status === 401) {
-                // 토큰 만료 + silent reauth 실패 → 캐시 제거 후 로그인 화면으로
                 chrome.storage.local.remove([
                   'tonefit_access_token',
-                  'tonefit_user_profile',
                   'tonefit_popup_cache',
                 ]);
                 chrome.runtime.sendMessage({ type: 'LOGOUT' }).catch(() => {});
@@ -192,8 +184,7 @@ const Popup = () => {
               }
               console.error('[ToneFit Popup] 프로필 조회 실패:', err);
             });
-        }
-      );
+        });
     })();
   }, []);
 
@@ -218,12 +209,7 @@ const Popup = () => {
     setIsLoggingOut(true);
     try {
       await doLogout();
-      chrome.storage.local.remove([
-        'tonefit_user_profile',
-        'tonefit_ai_consent',
-        'tonefit_marketing_consent',
-        'tonefit_popup_cache',
-      ]);
+      chrome.storage.local.remove(['tonefit_popup_cache']);
       // 사이드패널에 로그아웃 알림 → 패널이 start 화면으로 이동
       chrome.runtime.sendMessage({ type: 'LOGOUT' }).catch(() => {});
       // 팝업 닫기

@@ -25,9 +25,7 @@ const OptionsApp = () => {
       setIsLoggedIn(!!token);
       if (!token) return;
 
-      chrome.storage.local.get(
-        ["tonefit_popup_cache", "tonefit_user_profile"],
-        (result) => {
+      chrome.storage.local.get(["tonefit_popup_cache"], (result) => {
           const cache = result["tonefit_popup_cache"] as
             | {
                 name?: string;
@@ -36,9 +34,6 @@ const OptionsApp = () => {
                 aiConsent?: boolean;
                 marketingConsent?: boolean;
               }
-            | undefined;
-          const profileStorage = result["tonefit_user_profile"] as
-            | { picture?: string }
             | undefined;
 
           if (cache) {
@@ -53,13 +48,12 @@ const OptionsApp = () => {
 
           getMyProfile()
             .then((profile) => {
-              const picture = profileStorage?.picture ?? cache?.picture;
-              setUserProfile({ ...profile, picture });
+              setUserProfile({ ...profile, picture: cache?.picture });
               chrome.storage.local.set({
                 tonefit_popup_cache: {
                   name: profile.nickname,
                   email: profile.email,
-                  picture,
+                  picture: cache?.picture,
                   aiConsent: profile.ai_learning_agreed,
                   marketingConsent: profile.marketing_agreed,
                 },
@@ -71,7 +65,6 @@ const OptionsApp = () => {
               if (status === 401) {
                 chrome.storage.local.remove([
                   "tonefit_access_token",
-                  "tonefit_user_profile",
                   "tonefit_popup_cache",
                 ]);
                 setIsLoggedIn(false);
@@ -79,8 +72,7 @@ const OptionsApp = () => {
                 console.error("[ToneFit Options] 프로필 조회 실패:", err);
               }
             });
-        },
-      );
+        });
     })();
   }, []);
 
@@ -88,10 +80,7 @@ const OptionsApp = () => {
     setIsLoggingOut(true);
     try {
       await doLogout();
-      chrome.storage.local.remove([
-        "tonefit_user_profile",
-        "tonefit_popup_cache",
-      ]);
+      chrome.storage.local.remove(["tonefit_popup_cache"]);
       chrome.runtime.sendMessage({ type: "LOGOUT" }).catch(() => {});
       setIsLoggedIn(false);
       setUserProfile(null);

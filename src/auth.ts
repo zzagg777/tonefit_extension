@@ -127,21 +127,6 @@ export const signInWithGoogle = async (
 
   await storeToken(responseData.access_token);
 
-  // 팝업에서 사용할 사용자 프로필 + 선택 약관 초기값 저장
-  const aiConsent =
-    termsAgreements?.find((t) => t.type === 'AI_LEARNING')?.agreed ?? false;
-  const marketingConsent =
-    termsAgreements?.find((t) => t.type === 'MARKETING')?.agreed ?? false;
-  chrome.storage.local.set({
-    tonefit_user_profile: {
-      name: responseData.nickname,
-      email: responseData.email,
-      picture: responseData.profile_image_url ?? null,
-    },
-    tonefit_ai_consent: aiConsent,
-    tonefit_marketing_consent: marketingConsent,
-  });
-
   return {
     data: responseData,
     isNewUser: response.status === 201,
