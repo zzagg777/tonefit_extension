@@ -78,6 +78,7 @@ const ReplyInputBody = ({
       .map(([id, answer]) => ({ question_id: Number(id), answer }));
     onSubmit({
       conversation: analysis.conversation,
+      summary_lines: summaries.length > 0 ? summaries : undefined,
       receiver_type: receiver,
       original_subject: originalSubject || undefined,
       questions: analysis.questions.length > 0 ? analysis.questions : undefined,
