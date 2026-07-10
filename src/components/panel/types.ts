@@ -23,7 +23,8 @@ export type PanelMode = "generate" | "correct" | "reply";
 /** onRequest에 전달되는 생성 파라미터 */
 export interface GenerateParams {
   receiver: ReceiverType;
-  purpose: PurposeType;
+  /** 교정 모드에서는 불필요 (null 허용) */
+  purpose: PurposeType | null;
   emailText: string;
   /** 교정 모드 여부 — 익스텐션에서 Gmail 본문을 읽어 교정 API 호출 시 true */
   correctionMode?: boolean;

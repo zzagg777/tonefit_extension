@@ -186,7 +186,7 @@ const ToneFitPanel = ({
    */
   const canGenerateForm =
     panelMode === "correct"
-      ? !!receiver && !!purpose
+      ? !!receiver
       : !!receiver &&
         !!purpose &&
         emailText.trim().length >= 10 &&
@@ -203,7 +203,8 @@ const ToneFitPanel = ({
 
   /** 생성/교정 요청 — 횟수 소진 시 onExhausted 호출, 정상 시 로딩 → 성공/실패 전환 */
   const handleGenerate = useCallback(async () => {
-    if (!canGenerateForm || !receiver || !purpose) return;
+    if (!canGenerateForm || !receiver) return;
+    if (panelMode !== "correct" && !purpose) return;
 
     // 잔여 횟수 소진 → 팝업 표시 (부모 처리)
     if (remainingCount === 0) {

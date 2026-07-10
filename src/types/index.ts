@@ -159,11 +159,13 @@ export interface GoogleAuthResponse {
   plan: PlanType;
   credit_balance: number;
   access_token: string;
+  refresh_token: string;
 }
 
-/** POST /auth/refresh 응답 — refresh_token은 Set-Cookie로 rotation */
+/** POST /auth/refresh 응답 — RTR: access + refresh 동시 교체 (v0.59) */
 export interface RefreshResponse {
   access_token: string;
+  refresh_token: string;
 }
 
 // =============================================================
@@ -243,7 +245,6 @@ export interface DraftDetailResponse {
 /** POST /corrections 요청 */
 export interface CorrectionRequest {
   receiver_type: ReceiverType;
-  purpose: PurposeType;
   original_email: string; // 10자 이상, 2000자 이하
   protected_ranges?: ProtectedRange[];
 }
@@ -441,6 +442,7 @@ export interface ReplyAnswer {
 
 export interface ReplyRequest {
   conversation: string;
+  summary_lines?: string[];
   receiver_type: ReceiverType;
   original_subject?: string;
   questions?: ReplyQuestion[];

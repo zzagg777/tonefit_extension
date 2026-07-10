@@ -813,7 +813,6 @@ const Panel = () => {
           const originalEmail = rawEmail.trim().replace(/\n{3,}/g, '\n\n');
           const response = await postCorrection({
             receiver_type: params.receiver,
-            purpose: params.purpose,
             original_email: originalEmail,
           });
           // 오버레이는 리뷰 완료(onSuccess) 시점에 제거 — 여기선 유지
@@ -823,14 +822,14 @@ const Panel = () => {
             changes: response.changes,
             originalEmail,
             receiver: params.receiver,
-            purpose: params.purpose,
+            purpose: params.purpose ?? 'REPORT',
           };
         }
 
         // 생성 모드
         const response = await postGeneration({
           receiver_type: params.receiver,
-          purpose: params.purpose,
+          purpose: params.purpose!,
           brief_content: params.emailText,
         });
         return {

@@ -181,26 +181,28 @@ const GenerateInputBody = ({
             </div>
           </div>
 
-          {/* 목적 */}
-          <div className="flex flex-col gap-4 py-4">
-            <p className={labelClass}>목적 선택</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PURPOSE_OPTIONS.map(({ value, label }) => (
-                <ChipV2
-                  key={value}
-                  selected={purpose === value}
-                  size="md"
-                  onClick={() => {
-                    setPurpose(purpose === value ? null : value);
-                    onChipSelect?.();
-                    onDismissCorrectionHint();
-                  }}
-                >
-                  {label}
-                </ChipV2>
-              ))}
+          {/* 목적 — 생성 모드만 표시 */}
+          {panelMode === "generate" && (
+            <div className="flex flex-col gap-4 py-4">
+              <p className={labelClass}>목적 선택</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PURPOSE_OPTIONS.map(({ value, label }) => (
+                  <ChipV2
+                    key={value}
+                    selected={purpose === value}
+                    size="md"
+                    onClick={() => {
+                      setPurpose(purpose === value ? null : value);
+                      onChipSelect?.();
+                      onDismissCorrectionHint();
+                    }}
+                  >
+                    {label}
+                  </ChipV2>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 이메일 내용 입력 — 생성 모드만 */}
           {panelMode === "generate" && (
