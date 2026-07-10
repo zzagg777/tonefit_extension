@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ToneFit",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+QUed+UiTds81wQ0FZaMcKNgTrYt8/qhBpYqD9UnNimona3tOQ8OZYwhstVG98vyUxP674M6TT6Cgb9tlkIoleZ9SYm21PSYkNtTEZbU2HgRGSsRLw6/ZMJAqCkdQfCFnmfe92CYp8/9lqQfVVsOm92CrdZN9M58jGETmuhINOmvM6eFdJ6PvHEJcEc6GVbN4sdAzKhHhNGDKIijeTM4+gDnfqU/W+rYlvn3plDYosPwmAL2jzj4wEFq4kxJd9ktQNFgBX4wpAI7DDBcloZENrrVav9o+7AiMg/MVdP6Bmc292/g+jQ2tSu2ZWDJTky4mZixBBK7ygRt0Cth1SwaNQIDAQAB",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "description": "당신이 쓴 말을, 당신답게. 수신자 관계와 목적에 맞춰 한국어 비즈니스 이메일 초안을 Gmail에서 바로 생성하는 AI 이메일 어시스턴트.",
   "icons": {
     "16": "icons/icon-16.png",
