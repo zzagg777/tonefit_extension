@@ -4,32 +4,51 @@
  * 흐름:
  *   1. launchWebAuthFlow → Google ID 토큰(JWT) 발급
  *   2. POST /auth/google { id_token, terms_agreements? }
- *   3. access_token → chrome.storage.local 저장
+ *   3. access_token + refresh_token → chrome.storage.local 저장
+ *   4. access 만료 시 POST /auth/refresh (RTR — single-flight는 apiClient에서 보장)
  */
 
 import axios from 'axios';
-import type { GoogleAuthResponse, TermsAgreement } from '@/types';
+import type { GoogleAuthResponse, RefreshResponse, TermsAgreement } from '@/types';
 
-const STORAGE_KEY = 'tonefit_access_token';
+const ACCESS_TOKEN_KEY = 'tonefit_access_token';
+const REFRESH_TOKEN_KEY = 'tonefit_refresh_token';
 const API_URL = import.meta.env.VITE_API_URL as string;
 
 // ── chrome.storage.local 헬퍼 ─────────────────────────────────────
 
 export const getStoredToken = (): Promise<string | null> =>
   new Promise((resolve) => {
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      resolve((result[STORAGE_KEY] as string) ?? null);
+    chrome.storage.local.get([ACCESS_TOKEN_KEY], (result) => {
+      resolve((result[ACCESS_TOKEN_KEY] as string) ?? null);
     });
   });
 
 export const storeToken = (token: string): Promise<void> =>
   new Promise((resolve) => {
-    chrome.storage.local.set({ [STORAGE_KEY]: token }, resolve);
+    chrome.storage.local.set({ [ACCESS_TOKEN_KEY]: token }, resolve);
   });
 
 export const clearToken = (): Promise<void> =>
   new Promise((resolve) => {
-    chrome.storage.local.remove([STORAGE_KEY], resolve);
+    chrome.storage.local.remove([ACCESS_TOKEN_KEY], resolve);
+  });
+
+export const getStoredRefreshToken = (): Promise<string | null> =>
+  new Promise((resolve) => {
+    chrome.storage.local.get([REFRESH_TOKEN_KEY], (result) => {
+      resolve((result[REFRESH_TOKEN_KEY] as string) ?? null);
+    });
+  });
+
+export const storeRefreshToken = (token: string): Promise<void> =>
+  new Promise((resolve) => {
+    chrome.storage.local.set({ [REFRESH_TOKEN_KEY]: token }, resolve);
+  });
+
+export const clearRefreshToken = (): Promise<void> =>
+  new Promise((resolve) => {
+    chrome.storage.local.remove([REFRESH_TOKEN_KEY], resolve);
   });
 
 // ── Google ID 토큰 발급 ───────────────────────────────────────────
@@ -66,7 +85,6 @@ export const getGoogleIdToken = (interactive = true): Promise<string> => {
           return;
         }
 
-        // redirect URL hash에서 id_token 파싱
         const hash = new URL(redirectUrl).hash.slice(1);
         const params = new URLSearchParams(hash);
         const idToken = params.get('id_token');
@@ -82,13 +100,44 @@ export const getGoogleIdToken = (interactive = true): Promise<string> => {
   });
 };
 
+// ── access token 갱신 (RTR) ───────────────────────────────────────
+
+/**
+ * POST /auth/refresh — RTR 회전 갱신
+ * 새 access + refresh 를 받아 모두 교체 저장.
+ * 재사용·무효 시 401 INVALID_TOKEN → 호출자가 interactive 재로그인으로 처리.
+ * single-flight 직렬화는 apiClient.ts 의 refreshPromise 에서 보장.
+ */
+export const refreshAccessToken = async (): Promise<string> => {
+  const refreshToken = await getStoredRefreshToken();
+  if (!refreshToken) {
+    throw Object.assign(new Error('INVALID_TOKEN'), { _sessionExpired: true });
+  }
+
+  const response = await axios.post<{ success: boolean; data: RefreshResponse }>(
+    `${API_URL}/auth/refresh`,
+    { refresh_token: refreshToken }
+  );
+
+  const data =
+    response.data?.success !== undefined
+      ? response.data.data
+      : (response.data as unknown as RefreshResponse);
+
+  await Promise.all([storeToken(data.access_token), storeRefreshToken(data.refresh_token)]);
+  return data.access_token;
+};
+
 // ── 로그아웃 ─────────────────────────────────────────────────────
 
 export const logout = async (): Promise<void> => {
-  // 서버는 stateless — 로그아웃 API 없음
-  // FE가 로컬 토큰 폐기 + chrome.identity 캐시 제거로만 처리
-  await clearToken();
-  chrome.identity.clearAllCachedAuthTokens(() => {});
+  const refreshToken = await getStoredRefreshToken();
+  if (refreshToken) {
+    await axios
+      .post(`${API_URL}/auth/logout`, { refresh_token: refreshToken })
+      .catch(console.error); // 서버 오류여도 로컬 토큰은 폐기
+  }
+  await Promise.all([clearToken(), clearRefreshToken()]);
 };
 
 // ── ToneFit 백엔드 인증 ───────────────────────────────────────────
@@ -125,7 +174,24 @@ export const signInWithGoogle = async (
       ? response.data.data
       : (response.data as unknown as GoogleAuthResponse);
 
-  await storeToken(responseData.access_token);
+  await Promise.all([
+    storeToken(responseData.access_token),
+    storeRefreshToken(responseData.refresh_token),
+  ]);
+
+  const aiConsent =
+    termsAgreements?.find((t) => t.type === 'AI_LEARNING')?.agreed ?? false;
+  const marketingConsent =
+    termsAgreements?.find((t) => t.type === 'MARKETING')?.agreed ?? false;
+  chrome.storage.local.set({
+    tonefit_user_profile: {
+      name: responseData.nickname,
+      email: responseData.email,
+      picture: responseData.profile_image_url ?? null,
+    },
+    tonefit_ai_consent: aiConsent,
+    tonefit_marketing_consent: marketingConsent,
+  });
 
   return {
     data: responseData,

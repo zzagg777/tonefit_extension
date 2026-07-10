@@ -3,8 +3,9 @@
  *
  * 메인 앱의 apiClient와 별개로 관리.
  * - 토큰을 chrome.storage.local에서 직접 읽어 헤더에 주입
- * - 401 시 silent re-auth (interactive:false launchWebAuthFlow) 후 재시도
- * - silent 발급 실패 시 그대로 throw → 호출자가 로그인 화면으로 이동
+ * - 401 UNAUTHORIZED → POST /auth/refresh (RTR) 후 1회 재시도
+ * - 401 INVALID_TOKEN (refresh 무효·재사용) → SESSION_EXPIRED throw → interactive 재로그인
+ * - single-flight: 동시 갱신 요청은 진행 중인 Promise 재사용 (RTR 재사용 판정 방지)
  */
 
 import axios from 'axios';
@@ -17,6 +18,7 @@ const devlog = (level: 'info' | 'error' | 'warn', tag: string, message: string) 
 };
 import {
   getStoredToken,
+  refreshAccessToken,
 } from '@ext/auth';
 import type {
   GenerationRequest,
@@ -36,6 +38,17 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
+// single-flight: 동시 갱신 요청이 들어와도 하나의 Promise만 실행 (RTR 재사용 판정 방지)
+let refreshPromise: Promise<string> | null = null;
+
+const silentRefresh = (): Promise<string> => {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = refreshAccessToken().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+};
+
 /** auth 헤더 포함한 기본 헤더 반환 */
 const buildHeaders = async (): Promise<Record<string, string>> => {
   const token = await getStoredToken();
@@ -51,8 +64,12 @@ const buildHeaders = async (): Promise<Record<string, string>> => {
   return headers;
 };
 
+const getErrorCode = (err: unknown): string | undefined =>
+  (err as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+
 /**
- * 401 응답 시 session_expired throw — 호출자가 로그인 화면으로 이동
+ * 401 UNAUTHORIZED → refresh 후 1회 재시도
+ * 401 INVALID_TOKEN (refresh 무효·재사용) → SESSION_EXPIRED throw
  */
 const withReauth = async <T>(
   fn: (headers: Record<string, string>) => Promise<T>
@@ -62,12 +79,28 @@ const withReauth = async <T>(
     return await fn(headers);
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status;
-    if (status === 401) {
-      console.error('[ToneFit API] 401 감지 → 로그인 만료');
-      devlog('warn', 'Auth', '401 감지 → 로그인 만료');
+    if (status !== 401) throw err;
+
+    const code = getErrorCode(err);
+
+    // refresh 토큰 자체가 무효 → 재로그인 필요
+    if (code === 'INVALID_TOKEN') {
+      console.error('[ToneFit API] INVALID_TOKEN → 재로그인 필요');
+      devlog('warn', 'Auth', 'INVALID_TOKEN → 재로그인 필요');
       throw Object.assign(new Error('SESSION_EXPIRED'), { _sessionExpired: true });
     }
-    throw err;
+
+    // access 만료 → refresh로 갱신 후 재시도
+    try {
+      console.error('[ToneFit API] 401 감지 → refresh 시도');
+      devlog('info', 'Auth', '401 감지 → refresh 시도');
+      const newToken = await silentRefresh();
+      return await fn({ ...headers, Authorization: `Bearer ${newToken}` });
+    } catch (refreshErr) {
+      console.error('[ToneFit API] refresh 실패 → 재로그인 필요');
+      devlog('warn', 'Auth', 'refresh 실패 → 재로그인 필요');
+      throw Object.assign(new Error('SESSION_EXPIRED'), { _sessionExpired: true });
+    }
   }
 };
 
@@ -110,7 +143,7 @@ export const toggleTerms = async (
 export const postCorrection = async (
   data: CorrectionRequest
 ): Promise<CorrectionResponse> => {
-  devlog('info', 'Correction', `교정 요청 — receiver: ${data.receiver_type}, purpose: ${data.purpose}`);
+  devlog('info', 'Correction', `교정 요청 — receiver: ${data.receiver_type}`);
   try {
     const response = await withReauth((headers) =>
       axios.post<unknown>(`${API_URL}/corrections`, data, {
